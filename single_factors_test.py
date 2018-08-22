@@ -1,95 +1,185 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Jul 30 13:50:32 2018
+Created on Wed Aug 15 21:48:18 2018
 
 @author: wuwangchuxin
 """
 import numpy as np
 import pandas as pd
-from numpy import nan
-#from pandas import Series,DataFrame
 import statsmodels.api as sm
+import matplotlib.pyplot as plt
 import os
-os.chdir('C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/')
+os.chdir('D:/multiple_factors_models/')
+#import date_process_class as dpc
 
-def poss_date(date):
-    if len(date) == 10:
-        return date[:4]+'-'+date[5:7]+'-'+date[8:]
-    elif len(date) == 8:
-        return date[:4]+'-0'+date[5]+'-0'+date[-1]
-    elif date[-2] == r'/':
-        return date[:4]+'-'+date[5:7]+'-0'+date[-1]
-    else:
-        return date[:4]+'-0'+date[5]+'-'+date[-2:]
+add_ready = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/prepared_data/'
 
-financial_data = pd.read_csv('stock_financial_data_0_868.csv')
-financial_data2 = pd.read_csv('stock_financial_data_869_2200.csv')
-financial_data3 = pd.read_csv('stock_financial_data_2201_end.csv')
-financial_data_all = financial_data.append(financial_data2,ignore_index=False).append(financial_data3,ignore_index=False)
+# load data
+pe = np.load(add_ready+'windfactors_pe.npy')
+ep = np.load(add_ready+'windfactors_ep.npy')
+return_month = np.load(add_ready+'wind_return_month.npy')
+stockcode = np.load(add_ready+'stockscode.npy').reshape(-1,1)
+trade_date = np.load(add_ready+'month_end_tdate.npy').reshape(1,-1)
+start_date = np.load(add_ready+'stock_tdate_start.npy').reshape(-1,1)
+end_date = np.load(add_ready+'stock_tdate_end.npy').reshape(-1,1)
+float_mv = np.load(add_ready+'wind_float_mv.npy')
+#float_mv = np.delete(float_mv,21,axis=1) #有一行空值
 
-# pe因子
-pettm_month = pd.read_csv('pettm_month_data.csv',index_col=0)
-pettm_month.columns = map(lambda x:poss_date(x),list(pettm_month.columns))
-
-
-
-
-data_pe = pd.read_csv('internet_data/pe_ttm_120m.csv',index_col=0)
-data_yield = pd.read_csv('internet_data/yield_data_120m.csv',index_col=0)
-data_float_a_shares = pd.read_csv('internet_data/float_a_shares_120m.csv',index_col=0)
-data_hs300 = pd.read_csv('internet_data/hs300_120m.csv',index_col=0)
-
-# 
-data_pe.index.name = 'date'
-data_yield.index.name = 'data'
-data_float_a_shares.index.name = 'data'
-
-data_pe = data_pe.apply(lambda x:1./x)
-print (data_pe)
-
-T = len(data_yield.columns)
-data_yield = data_yield.replace(0,nan)
-data_float_col = data_float_a_shares.replace(0,nan)
-t_values = []
-
-for i in range(1,T):
-    data_yield_col = data_yield.iloc[:,i].dropna()
-    data_pe_col = data_pe.iloc[:,i-1].reindex(index=data_yield_col.index)
-    #中位数去极值法
-    data_pe_median = data_pe_col.median()
-    data_pe_minus_median_ser=data_pe_col-data_pe_median
-    data_pe_minus_median_ser_med = data_pe_minus_median_ser.abs().median()
-    big_num=data_pe_median+5*data_pe_minus_median_ser_med
-    small_num=data_pe_median-5*data_pe_minus_median_ser_med
-    data_pe_col[data_pe_col>big_num]=big_num
-    data_pe_col[data_pe_col<small_num]=small_num
-    #标准化
-    mean_col = data_pe_col.mean()
-    std_col = data_pe_col.std()
-    data_pe_col = data_pe_col.apply(lambda x:(x-mean_col)/std_col)
-    data_pe_col=data_pe_col.replace(nan,0)
+class Clean_Data():
+    def __init__(self,arr):
+        self.arr=arr
     
-    data_float_col=data_float_a_shares.iloc[:,i-1].reindex(index=data_yield_col.index)
-    # 个股相对于hs300的超额收益
-    data_yield_col = data_yield_col.subtract(data_hs300.iloc[:,i].values[0])
-    data=pd.concat([data_yield_col,data_pe_col,data_float_col],axis=1)
-    data=data.dropna()
-    # 以流通市值的平方根作为权值
-    w=data.iloc[:,2].tolist()
-    w=np.array([i**0.5 for i in w])
-    mod_wls = sm.WLS(data.iloc[:,0],data.iloc[:,1],w).fit()
-    t_values.append(mod_wls.tvalues[0])
-    
-t_values=np.array(t_values)
-t_values_mean=t_values.mean()
-t_values_mean_div_std=t_values_mean/t_values.std()
-abs_t_values=np.abs(t_values)
-abs_t_values_mean = abs_t_values.mean()
+    def Median_deextremum(self,n=5):
+        # 中位数去极值法
+        med = np.nanmedian(self.arr,axis=0)
+        mad = np.nanmedian(np.abs(self.arr - med),axis=0)
+        res = np.where(self.arr>n*mad,n*mad,np.where(self.arr<(-n)*mad,(-n)*mad,self.arr))
+        return res
 
-abs_over2 = np.where(abs_t_values<2,nan,abs_t_values)
-abs_over2=abs_over2[np.logical_not(np.isnan(abs_over2))]
-abs_over2_per = len(abs_over2)/len(abs_t_values)    
-abs_t_values_mean,abs_over2_per,len(abs_over2),len(abs_t_values),t_values_mean,t_values_mean_div_std
+    def Ordinal_values(self):
+        # 求数据集的排序值
+        # argsort 不能忽略nan值
+        res = self.arr.copy()
+        not_nan_num = np.sum(~np.isnan(self.arr),axis=0) #非空值数量
+        mid = np.argsort(np.where(np.isnan(self.arr),99999,self.arr),axis=0) #将nan值赋值为大数字然后排序
+        #末尾插入一列递增数列，作为名次标记
+        mid2 = np.insert(mid,mid.shape[1],values=np.arange(mid.shape[0]),axis=1) 
+        # 逐列进行计算
+        for n in np.arange(self.arr.shape[1]):
+            mid_tmp = mid2[:,[n,115]] #当前列和标记列，即所在列的位置和排名
+            #第一列排序，其位置归位，标记列为排名。得到原来所在位置的元素在所在列的排名
+            mid_tmp2 = mid_tmp[mid_tmp[:,0].argsort(axis=0)][:,1]
+            #恢复为空值的列
+            mid_tmp3 = np.where(mid_tmp2>=not_nan_num[n],np.nan,mid_tmp2)
+            res[:,n] = mid_tmp3
+        return res
+
+    def Z_score(self):
+        #z_score标准化
+        return (self.arr - np.nanmean(self.arr))/np.nanstd(self.arr)
+    
+    def Fill_na(self):
+        #将本来应该有但是却为nan值的位置填充为0
+#        arr_after_zscore = self.Z_score()
+        mid = np.where((trade_date>=start_date) & (trade_date<=end_date),self.arr,99999)
+        res = np.where(np.isnan(mid),0,self.arr)
+        return res
+
+
+def OLS_regression(x,y):
+    # 普通最小二乘
+    X = sm.add_constant(x)
+    regr = sm.OLS(y, X).fit() #regr.resid,残差；regr.params，beta值;regr.tvalues,T值
+    return regr
+
+def WLS_regression(x,y,w):
+    #加权最小二乘法回归
+    #w=data.iloc[:,2].tolist()
+    #w=np.array([i**0.5 for i in w])
+    X = sm.add_constant(x)
+    regr = sm.WLS(y,X,weights=w).fit()
+    #results.tvalues T值 regr.resid,残差；regr.params，beta值;results.t_test([1,0])
+    return regr
+
+
+
+
+if __name__=='__main__':
+    #pe倒数值
+    ep_med_de = Clean_Data(ep).Median_deextremum()
+    ep_m_zscore = Clean_Data(ep_med_de).Z_score()
+    ep_traditional = Clean_Data(ep_m_zscore).Fill_na()
+    #pe倒数序数值
+    ep_ord = Clean_Data(ep).Ordinal_values()
+    ep_o_zscore = Clean_Data(ep_ord).Z_score()
+    ep_ordinal = Clean_Data(ep_o_zscore).Fill_na()
+
+    # ep_traditional回归
+    res_regr_tra=pd.DataFrame(index=np.arange(ep_traditional.shape[1]-1),
+                                columns=['trade_month','Beta_OLS','Tvalue_OLS',\
+                                         'Beta_WLS','Tvalue_WLS','IC'])
+    for n in np.arange(ep_traditional.shape[1]-1):
+        #剔除空值
+        nona_index = (~np.isnan(ep_traditional[:,n])) & (~np.isnan(return_month[:,n+1]))
+        ep_traditional_nona = ep_traditional[:,n][nona_index]
+        return_month_nona = return_month[:,n+1][nona_index]
+        #OLS
+        res_ols = OLS_regression(ep_traditional_nona,return_month_nona)
+        #WLS
+        w=float_mv[:,n][nona_index]
+        w = np.where(np.isnan(w),np.nanmean(w),w) #用均值填充nan值
+        w=np.array([(i**0.5)/(10**9) for i in w])
+        res_wls = WLS_regression(ep_traditional_nona,return_month_nona,w)
+        # IC
+        mid_ic = np.corrcoef(ep_traditional_nona,return_month_nona)[0,1]
+        #结果
+        res_regr_tra.iloc[n,:] = [trade_date[0,n],res_ols.params[1],res_ols.tvalues[1],\
+                                    res_wls.params[1],res_wls.tvalues[1],mid_ic]
+
+    # ep_ordinal回归
+    res_regr_ord=pd.DataFrame(index=np.arange(ep_ordinal.shape[1]-1),
+                                columns=['trade_month','Beta_OLS','Tvalue_OLS',\
+                                         'Beta_WLS','Tvalue_WLS','IC'])
+    for n in np.arange(ep_ordinal.shape[1]-1):
+        #剔除空值
+        nona_index = (~np.isnan(ep_ordinal[:,n])) & (~np.isnan(return_month[:,n+1]))
+        ep_ord_nona = ep_ordinal[:,n][nona_index]
+        return_month_nona = return_month[:,n+1][nona_index]
+        #OLS
+        res_ols = OLS_regression(ep_ord_nona,return_month_nona)
+        #WLS
+        w=float_mv[:,n][nona_index]
+        w = np.where(np.isnan(w),np.nanmean(w),w) #用均值填充nan值
+        w=np.array([i**0.5 for i in w])
+        res_wls = WLS_regression(ep_ord_nona,return_month_nona,w)
+        # IC
+        mid_ic = np.corrcoef(ep_ord_nona,return_month_nona)[0,1]
+        #结果
+        res_regr_ord.iloc[n,:] = [trade_date[0,n],res_ols.params[1],res_ols.tvalues[1],\
+                                    res_wls.params[1],res_wls.tvalues[1],mid_ic]
+
+        # T值结果分析
+        # T abs mean
+        tam_ols_tra = np.mean(res_regr_tra['Tvalue_OLS'].apply(lambda x:abs(x)))
+        tam_wls_tra = np.mean(res_regr_tra['Tvalue_WLS'].apply(lambda x:abs(x)))
+        tam_ols_ord = np.mean(res_regr_ord['Tvalue_OLS'].apply(lambda x:abs(x)))
+        tam_wls_ord = np.mean(res_regr_ord['Tvalue_WLS'].apply(lambda x:abs(x)))
+        #t 值序列绝对值大于2 的占比
+        port_ols_tra = np.sum(res_regr_tra['Tvalue_OLS'].apply(lambda x:abs(x))>2)/len(res_regr_tra['Tvalue_OLS']) 
+        port_wls_tra = np.sum(res_regr_tra['Tvalue_WLS'].apply(lambda x:abs(x))>2)/len(res_regr_tra['Tvalue_WLS']) 
+        port_ols_ord = np.sum(res_regr_ord['Tvalue_OLS'].apply(lambda x:abs(x))>2)/len(res_regr_tra['Tvalue_OLS']) 
+        port_wls_ord = np.sum(res_regr_ord['Tvalue_WLS'].apply(lambda x:abs(x))>2)/len(res_regr_tra['Tvalue_WLS']) 
+        # 因子收益率序列均值
+        Beta_ols_tra = np.mean(res_regr_tra['Beta_OLS'])
+        Beta_wls_tra = np.mean(res_regr_tra['Beta_WLS'])
+        Beta_ols_ord = np.mean(res_regr_ord['Beta_OLS'])
+        Beta_wls_ord = np.mean(res_regr_ord['Beta_WLS'])
+        # 
+        TIR_ols_tra = tam_ols_tra/np.std(res_regr_tra['Tvalue_OLS'].apply(lambda x:abs(x)))
+        TIR_wls_tra = tam_wls_tra/np.std(res_regr_tra['Tvalue_WLS'].apply(lambda x:abs(x)))
+        TIR_ols_ord = tam_ols_ord/np.std(res_regr_ord['Tvalue_OLS'].apply(lambda x:abs(x)))
+        TIR_wls_ord = tam_wls_ord/np.std(res_regr_ord['Tvalue_WLS'].apply(lambda x:abs(x)))
+        
+#画图
+#res_regr_tra
+#res_regr_ord
+#
+#fig = plt.figure()
+#ax1 = fig.add_subplot(1, 2, 1)
+#
+#ax2 = fig.add_subplot(1, 2, 2)
+#
+#fig_IC = plt.figure()
+#ax_IC = fig.add_subplot(1, 1, 1)
+#plt.plot(res_regr_tra['IC'])
+#plt.plot(res_regr_ord['IC'])
+#ax_IC.hist(res_regr_tra['IC'], bins=20, alpha=0.3)
+#ax_IC.hist(res_regr_ord['IC'], bins=20, color='g', alpha=0.3)
+#
+#ax3 = fig.add_subplot(2, 2, 3)
+
+
+
 
 
 
