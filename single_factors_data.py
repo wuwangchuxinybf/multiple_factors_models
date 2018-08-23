@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Aug 14 14:49:34 2018
-
+    
 @author: wuwangchuxin
 """
 
@@ -13,6 +13,7 @@ import date_process_class as dpc
 
 add_winddata = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/wind/'
 add_ready = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/prepared_data/'
+add_pic = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/20180223report/'
 
 # df 为wind导出的月度数据（index为stockcode，columns为month end tradedate+其它中间tradedate）
 # 剔除掉中间tradedate的列
@@ -86,7 +87,7 @@ pb_lf_month.columns = map(lambda x:dpc.DateProcess(x).format_date(),list(pb_lf_m
 np.save(add_ready+'windfactors_pb',np.array(pb_lf_month.values)) #pb值，3225*115
 #取pb因子的倒数
 data_bp = pb_lf_month.apply(lambda x:1./x)
-np.save(add_ready+'windfactors_bp',np.array(data_bp.values)) #pe值，3225*115
+np.save(add_ready+'windfactors_bp',np.array(data_bp.values)) #bp值，3225*115
 
 # ps因子
 psttm_month = pd.read_csv(add_winddata+'psttm_month_data.csv',index_col=0)
@@ -97,4 +98,7 @@ np.save(add_ready+'windfactors_ps',np.array(psttm_month.values)) #pb值，3225*1
 #取ps因子的倒数
 data_sp = psttm_month.apply(lambda x:1./x)
 np.save(add_ready+'windfactors_sp',np.array(data_sp.values)) #pe值，3225*115
+
+
+
 
