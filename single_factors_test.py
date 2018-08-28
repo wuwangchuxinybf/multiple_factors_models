@@ -14,20 +14,24 @@ os.chdir('D:/multiple_factors_models/')
 from scipy import stats as ss
 import matplotlib.pyplot as plt
 
+# 添加路径，方便导入自定义模块，比如 import date_process_class as dpc
+import sys
+sys.path.append('D:/multiple_factors_models')
+
 add_winddata = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/wind/'
 add_ready = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/prepared_data/'
 add_pic = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/20180223report/'
 
 # load data
 ##################################################################################
-#financial_q = np.load(add_ready+'windfactors_financial_q.npy') #季度财务因子
+financial_q = np.load(add_ready+'windfactors_financial_q.npy') #季度财务因子
 ## 月度因子
-#pe = np.load(add_ready+'windfactors_pe.npy')
-#ep = np.load(add_ready+'windfactors_ep.npy')
-#pb = np.load(add_ready+'windfactors_pb.npy')
-#bp = np.load(add_ready+'windfactors_bp.npy')
-#ps = np.load(add_ready+'windfactors_ps.npy')
-#sp = np.load(add_ready+'windfactors_sp.npy')
+pe = np.load(add_ready+'windfactors_pe.npy')
+ep = np.load(add_ready+'windfactors_ep.npy')
+pb = np.load(add_ready+'windfactors_pb.npy')
+bp = np.load(add_ready+'windfactors_bp.npy')
+ps = np.load(add_ready+'windfactors_ps.npy')
+sp = np.load(add_ready+'windfactors_sp.npy')
 #
 #float_mv = np.load(add_ready+'wind_float_mv.npy')
 #
@@ -44,7 +48,7 @@ add_pic = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/20180223report/'
 #end_date = np.load(add_ready+'stock_tdate_end.npy').reshape(-1,1) #个股有效期终止时间
 ##################################################################################
 
-class Clean_Data():
+class Clean_Data:
     #数据格式：ndarray，3225*115,3225只个股，115个月
     def __init__(self,arr):
         self.arr=arr
@@ -88,7 +92,7 @@ class Clean_Data():
         res = np.where(np.isnan(mid),0,self.arr)
         return res
 
-class Single_factors_test_regression():
+class Single_factors_test_regression:
     # 单因子测试之回归法
     def __init__(self,factor_arr):
         self.factor_arr=factor_arr
@@ -96,14 +100,16 @@ class Single_factors_test_regression():
         self.float_mv = np.load(add_ready+'wind_float_mv.npy')
         self.return_month = np.load(add_ready+'wind_return_month.npy') #月收益率
         self.trade_date = np.load(add_ready+'month_end_tdate.npy').reshape(1,-1) #月末交易日
-
-    def OLS_regression(self,x,y):
+    
+    @staticmethod
+    def OLS_regression(x,y):
         # 普通最小二乘法回归
         X = sm.add_constant(x)
         regr = sm.OLS(y, X).fit() #regr.resid,残差；regr.params，beta值;regr.tvalues,T值
         return regr
     
-    def WLS_regression(self,x,y,w):
+    @staticmethod
+    def WLS_regression(x,y,w):
         #加权最小二乘法回归
         #w=data.iloc[:,2].tolist()
         #w=np.array([i**0.5 for i in w])
@@ -142,7 +148,8 @@ class Single_factors_test_regression():
                                   res_wls.params[1],res_wls.tvalues[1],mid_ic]
         return res_regr
     
-    def T_analysis(self,regress_df):
+    @staticmethod
+    def T_analysis(regress_df):
         # T abs mean
         T_res = pd.DataFrame(index=['OLS','WLS'],
                               columns=['t_abs_mean','port_greater_2','beta_mean',
@@ -163,8 +170,9 @@ class Single_factors_test_regression():
             T_res.loc[col2[-3:],'beta_mean'] = beta_mean
             T_res.loc[col2[-3:],'beta_t'] = beta_t
         return T_res
-            
-    def IC_analysis(self,regress_df):
+    
+    @staticmethod        
+    def IC_analysis(regress_df):
         IC_res=pd.DataFrame(index=['fac'],columns=['IC_mean','IC_std','IC_IR','IC_positive_port'])
         IC_mean = regress_df['IC'].mean()
         IC_std = regress_df['IC'].std()
@@ -214,19 +222,29 @@ class Single_factors_test_regression():
 #        return netvalue_df                             
 # 
 #
-#
-#
+class Single_factors_test_group:
+    # 单因子测试之分组法
+    #数据格式：ndarray，3225*115,3225只个股，115个月
+    capital_initial = 100000000
+    def __init__(self,factor_arr):
+        self.factor_arr=factor_arr
+        self.industry_sw1 = np.load(add_ready+'industry_sw1.npy')
+        self.float_mv = np.load(add_ready+'wind_float_mv.npy')
+        self.return_month = np.load(add_ready+'wind_return_month.npy') #月收益率
+        self.trade_date = np.load(add_ready+'month_end_tdate.npy').reshape(1,-1) #月末交易日
+        self.industry = pd.read_excel(add_winddata+'industry_sw1_class.xlsx')
+        
     def group_net_value(self):
-        capital_initial = 100000000
-        factor_df = pd.DataFrame(ep,index=stockcode,columns=trade_date) #因子转化为dataframe类型
-        capital_df = pd.DataFrame(index = trade_date,
+#        capital_initial = 100000000
+        factor_df = pd.DataFrame(ep,index=self.stockcode,columns=self.trade_date) #因子转化为dataframe类型
+        capital_df = pd.DataFrame(index = self.trade_date,
                                    columns=['group1','group2','group3','group4','group5']) #资金变化结果df
-        capital_df.iloc[0,:]=capital_initial
+        capital_df.iloc[0,:]=self.capital_initial
         for n in range(len(factor_df.columns)-1):
             mid_df=pd.merge(factor_df[[factor_df.columns[n]]],
-                        return_month[[factor_df.columns[n+1]]],
+                        self.return_month[[factor_df.columns[n+1]]],
                         left_index=True,right_index=True)
-            mid_df = pd.merge(mid_df,industry,left_index=True,right_on='code',how='inner')
+            mid_df = pd.merge(mid_df,self.industry,left_index=True,right_on='code',how='inner')
             mid_df.rename(columns={factor_df.columns[n]:'ep',factor_df.columns[n+1]:'return_month'},inplace = True)
             grouped =mid_df.groupby(by='industry_1class') #按行业分组
             grouped_df = pd.DataFrame(columns=['ep','return_month','group_NO'])
@@ -268,11 +286,16 @@ if __name__=='__main__':
     #pe倒数值
     ep_med_de = Clean_Data(ep).Median_deextremum()
     ep_m_zscore = Clean_Data(ep_med_de).Z_score()
-    ep_num = Clean_Data(ep_m_zscore).Fill_na()    
+    ep_num = Clean_Data(ep_m_zscore).Fill_na()
+    
     Single_factors_test_ins = Single_factors_test_regression(ep_num)
     res_ep_num = Single_factors_test_ins.single_factor_regress()
     T_ep_num_res = Single_factors_test_ins.T_analysis(res_ep_num)
     IC_ep_num_res = Single_factors_test_ins.IC_analysis(res_ep_num)
+    
+    
+    
+    
     
     #pe倒数序数值
     ep_ord = Clean_Data(ep).Ordinal_values()
@@ -382,5 +405,76 @@ if __name__=='__main__':
 
 
 
+
+    financial_q = np.load(add_ready+'windfactors_financial_q.npy') #季度财务因子
+    ## 月度因子
+    pe = np.load(add_ready+'windfactors_pe.npy')
+    ep = np.load(add_ready+'windfactors_ep.npy')
+    pb = np.load(add_ready+'windfactors_pb.npy')
+    bp = np.load(add_ready+'windfactors_bp.npy')
+    ps = np.load(add_ready+'windfactors_ps.npy')
+    sp = np.load(add_ready+'windfactors_sp.npy')
+    
+    float_mv = np.load(add_ready+'wind_float_mv.npy')
+    
+    return_month = np.load(add_ready+'wind_return_month.npy') #月收益率
+    
+    stockcode = np.load(add_ready+'stockscode.npy').reshape(-1,1) #股票代码
+    trade_date = np.load(add_ready+'month_end_tdate.npy').reshape(1,-1) #月末交易日
+    
+    industry_sw1 = np.load(add_ready+'industry_sw1.npy') #申万一级行业哑变量
+    industry_sw1_name = np.load(add_ready+'industry_sw1_name.npy').reshape(1,-1) #申万一级行业分类名称
+    #industry = pd.read_excel(add_winddata+'industry_sw1_class.xlsx')  #原始数据
+    
+    start_date = np.load(add_ready+'stock_tdate_start.npy').reshape(-1,1) #个股有效期起始时间
+    end_date = np.load(add_ready+'stock_tdate_end.npy').reshape(-1,1) #个股有效期终止时间
+
+
+    def group_net_value(factor_arr):
+#        capital_initial = 100000000
+        factor_df = pd.DataFrame(ep,index=stockcode,columns=trade_date) #因子转化为dataframe类型
+        capital_df = pd.DataFrame(index = trade_date,
+                                   columns=['group1','group2','group3','group4','group5']) #资金变化结果df
+        capital_df.iloc[0,:]=capital_initial
+        for n in range(len(factor_df.columns)-1):
+            mid_df=pd.merge(factor_df[[factor_df.columns[n]]],
+                        return_month[[factor_df.columns[n+1]]],
+                        left_index=True,right_index=True)
+            mid_df = pd.merge(mid_df,industry,left_index=True,right_on='code',how='inner')
+            mid_df.rename(columns={factor_df.columns[n]:'ep',factor_df.columns[n+1]:'return_month'},inplace = True)
+            grouped =mid_df.groupby(by='industry_1class') #按行业分组
+            grouped_df = pd.DataFrame(columns=['ep','return_month','group_NO'])
+            for indus_name,value in grouped:
+                value.sort_values(by='ep',ascending=False,inplace=True)
+                value.dropna(inplace=True)
+                value.reset_index(drop=True,inplace=True)
+                group_amount = int(value.shape[0]/5) #每组股票数量
+                for group_n in range(5):
+                    if group_n==4:
+                        mid_indus_group = value.loc[group_n*group_amount:,['ep','return_month']]
+                        mid_indus_group['group_NO'] = 5
+                        grouped_df = grouped_df.append(mid_indus_group)
+                    else:
+                        mid_indus_group = value.loc[group_n*group_amount:(group_n+1)*group_amount-1,['ep','return_month']]
+                        mid_indus_group['group_NO'] = group_n+1
+                        grouped_df = grouped_df.append(mid_indus_group)
+            grouped_df.reset_index(drop=True,inplace=True)
+            #资金等权
+            for group_num in range(5):
+                grouped_indus = grouped_df[grouped_df['group_NO']==(group_num+1)]
+                capital_df.iloc[n+1,group_num] = capital_df.iloc[n,group_num] + \
+                             int(capital_df.iloc[n,group_num]/(5*grouped_indus.shape[0]))*\
+                             (grouped_indus['return_month'].sum()/100)
+            print (n,'done')
+    
+        netvalue_df = capital_df/capital_initial
+
+#         画图
+        ax1 = plt.figure(figsize=(16, 9)).add_subplot(1,1,1)
+        netvalue_df.plot(ax=ax1,grid=True)
+        ax1.set_xlabel('交易日期', fontsize=16) #x轴名称
+        ax1.set_ylabel('净值', fontsize=16) #x轴名称
+        plt.title("PE分组净值曲线",fontsize=20) #标题
+        plt.legend(loc='best')
 
 
