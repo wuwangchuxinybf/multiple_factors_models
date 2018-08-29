@@ -24,12 +24,13 @@ add_pic = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/20180830report/'
 
 class Single_factors_draw():
     def __init__(self):
-#        self.pe = np.load(add_ready+'windfactors_pe.npy')
-#        self.pb = np.load(add_ready+'windfactors_pb.npy')
-#        self.ps = np.load(add_ready+'windfactors_ps.npy')
+        self.pe = np.load(add_ready+'windfactors_pe.npy')
+        self.pb = np.load(add_ready+'windfactors_pb.npy')
+        self.ps = np.load(add_ready+'windfactors_ps.npy')
         self.industry = pd.read_excel(add_winddata+'industry_sw1_class.xlsx')
         self.stockcode = np.load(add_ready+'stockscode.npy').reshape(-1,1)
-        self.trade_date = np.load(add_ready+'month_end_tdate.npy').reshape(1,-1)
+        self.trade_date = np.load(add_ready+'month_end_tdate.npy')#.reshape(1,-1)
+        self.float_mv = np.load(add_ready+'wind_float_mv.npy')
         #industry_dict = {'交通运输':'JTYS','休闲服务':'XXFW','传媒':'CM','公用事业':'GYSY',
         #                 '农林牧渔':'NLMY','化工':'HG','医药生物':'YYSW','商业贸易':'SYMY',
         #                 '国防军工':'GFJG','家用电器':'JYDQ','建筑材料':'JZCL','建筑装饰':'JZZS',
@@ -45,7 +46,7 @@ class Single_factors_draw():
     def mean_industry_process(self,factor):
         #去极值并按行业分类求均值
         mid_factor = Clean_Data(factor).Median_deextremum()
-        factor_df = pd.DataFrame(mid_factor,columns=self.trade_date[0,:],index=self.stockcode[:,0])
+        factor_df = pd.DataFrame(mid_factor,columns=self.trade_date,index=self.stockcode[:,0])
         factor_mean_industry = factor_df.groupby(np.array(self.industry.industry_1class)).mean()      
         return factor_mean_industry
     
@@ -82,7 +83,7 @@ class Single_factors_draw():
     @staticmethod
     def fomat_df(pe,pb,ps):
         #将全部的月度截面因子数据合并为dataframe类型,目的是以最近一期的PE值排序，
-        #之前的各期均以最近一期的行业排序绘图
+        #之前的各期均以最近一期的行业排序值
         n=1
         res=pd.DataFrame()
         dates_selected = pe.columns[::-1]
@@ -151,7 +152,57 @@ class Single_factors_draw():
 ##        plt.xticks(rotation='90')
 #        sns.heatmap(df, square=True, linewidths=.5, annot=True)
 #        plt.show()
-           
+    
+    def factor_mkt_value(self,factor):
+        #按流通市值分组求因子均值，得到同年度排序结果
+        mid_factor = Clean_Data(factor).Median_deextremum()
+        factor_df = pd.DataFrame(mid_factor,columns=self.trade_date,index=self.stockcode[:,0])
+        factor_df = factor_df.groupby([x[:4] for x in factor_df.columns],axis=1).last()
+        float_mv_df = pd.DataFrame(self.float_mv,columns=self.trade_date,index=self.stockcode[:,0])
+        float_mv_df = float_mv_df.groupby([x[:4] for x in float_mv_df.columns],axis=1).last()
+        
+        fac_indus_res = pd.DataFrame(index = factor_df.columns,
+                                   columns=['group1','group2','group3','group4','group5']) #资金变化结果df
+        for n in range(factor_df.shape[1]):
+            mid_column = float_mv_df.columns[n]
+            mid_float_mv = float_mv_df[[mid_column]]
+            mid_factor = factor_df[[mid_column]]
+            mid_df = pd.merge(mid_factor,mid_float_mv,left_index=True,right_index=True,how='inner')
+            mid_df = pd.merge(mid_df,self.industry,left_index=True,right_on='code',how='inner')
+            mid_df.rename(columns={mid_df.columns[0]:'factor',
+                                   mid_df.columns[1]:'float_mv'},inplace = True)
+            grouped =mid_df.groupby(by='industry_1class') #按行业分组
+            grouped_df = pd.DataFrame(columns=['factor','float_mv','group_NO'])
+            for indus_name,value in grouped:
+                value.sort_values(by='float_mv',ascending=False,inplace=True)
+                value.dropna(inplace=True)
+                value.reset_index(drop=True,inplace=True)
+                group_amount = int(value.shape[0]/5) #每组股票数量
+                for group_n in range(5):
+                    if group_n==4:
+                        mid_indus_group = value.loc[group_n*group_amount:,['factor','float_mv']]
+                        mid_indus_group['group_NO'] = 5
+                        grouped_df = grouped_df.append(mid_indus_group)
+                    else:
+                        mid_indus_group = value.loc[group_n*group_amount:(group_n+1)*group_amount-1,['factor','float_mv']]
+                        mid_indus_group['group_NO'] = group_n+1
+                        grouped_df = grouped_df.append(mid_indus_group)                          
+            fac_indus_res.iloc[n,:] = grouped_df.groupby('group_NO')['factor'].mean().values
+        return fac_indus_res
+    
+    @staticmethod
+    def draw_mkt_value(fac_indus_res):
+        font = {'rotation' : 0,   # 旋转30度
+                 'fontsize' : 12,  # 字体大小
+                }
+        ax1 = plt.figure(figsize=(16, 9)).add_subplot(1,1,1)
+        fac_indus_res.plot(ax=ax1,kind='bar',grid=True)
+        ax1.set_xlabel('年份', fontsize=16) #x轴名称
+        ax1.set_xticklabels(range(2009,2019),font) #x轴标签
+        ax1.set_ylabel('因子均值', fontsize=16) #x轴名称
+        plt.title("分组净值曲线",fontsize=20) #标题
+        plt.legend(loc='best')
+    
     def main(self):
         # 仅画图
         pe = self.mean_industry_pe()
@@ -171,9 +222,7 @@ class Single_factors_draw():
 if __name__=='__main__':
     drawing = Single_factors_draw()
     drawing.main()
-
-
-
-
-
-
+    
+    drawing.draw_mkt_value(drawing.factor_mkt_value(drawing.pe))
+    drawing.draw_mkt_value(drawing.factor_mkt_value(drawing.pb))
+    drawing.draw_mkt_value(drawing.factor_mkt_value(drawing.ps))
