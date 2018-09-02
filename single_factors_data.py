@@ -12,6 +12,7 @@ os.chdir('D:/multiple_factors_models/')
 import date_process_class as dpc
 
 add_winddata = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/wind/'
+add_jqdata = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/jqdata/'
 add_ready = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/prepared_data/'
 add_pic = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/20180223report/'
 
@@ -98,6 +99,74 @@ np.save(add_ready+'windfactors_ps',np.array(psttm_month.values)) #pb值，3225*1
 #取ps因子的倒数
 data_sp = psttm_month.apply(lambda x:1./x)
 np.save(add_ready+'windfactors_sp',np.array(data_sp.values)) #pe值，3225*115
+
+
+#沪深300指数成分股权重
+
+weights_000300 = pd.read_csv(add_jqdata+'index_weights_000300.csv')
+weights_000300.date = weights_000300.date.apply(lambda x: dpc.DateProcess(x).format_date())
+weights_000300.rename(columns={'index':'code','display_name':'sname'},inplace=True)
+weights_000300 = weights_000300[['code','date','weight']]
+
+weights_000300_plus = pd.read_excel(add_jqdata+'index_weights_000300_plus.xlsx')
+weights_000300_plus = weights_000300_plus[['code','date','weight']]
+weights_000300_plus.date = weights_000300_plus.date.apply(lambda x:str(x)[:10])
+weights_000300 = weights_000300_plus.append(weights_000300)
+#wind缺失这两条数据，手动补上
+weights_000300.loc[34498] = ['600001.SH','2009-12-31',0.028]
+weights_000300.loc[34499] = ['600357.SH','2009-12-31',0.012]
+
+weights_000300 = weights_000300.sort_values(by=['date','weight'],ascending=(True,False))
+weights_000300.reset_index(drop=True,inplace=True)
+weights_000300_arr=weights_000300.pivot('code','date')
+np.save(add_ready+'weights_000300',np.array(weights_000300_arr.values)) #pe值，3225*115
+np.save(add_ready+'weights_000300_stocklist',np.array(weights_000300_arr.index))
+# 中证500个股权重
+weights_000905 = pd.read_csv(add_jqdata+'index_weights_000905.csv')
+weights_000905.date = weights_000905.date.apply(lambda x: dpc.DateProcess(x).format_date())
+weights_000905 = weights_000905[['code','date','weight']]
+weights_000905 = weights_000905.sort_values(by=['date','weight'],ascending=(True,False))
+weights_000905.reset_index(drop=True,inplace=True)
+weights_000905_arr=weights_000905.pivot('code','date')
+np.save(add_ready+'weights_000905',np.array(weights_000905_arr.values))
+np.save(add_ready+'weights_000905_stocklist',np.array(weights_000905_arr.index))
+
+# 沪深300指数申万一级行业权重
+#industry = pd.read_excel(add_winddata+'industry_sw1_class.xlsx')  #原始数据
+#weights_000300['sw_1class']=np.nan
+#no_list=[]
+#for code in set(weights_000300['code']):
+#    try:
+#        weights_000300.loc[weights_000300['code']==code,'sw_1class']= \
+#            industry.loc[industry['code']==code,'industry_1class'].values[0]
+#    except:
+#        no_list.append(code)
+#for code in no_list:
+#    industry[industry['code']==code]
+
+hs300_sw_1class_weight = pd.read_excel(add_winddata+'hs300_sw_1class_weight.xlsx')
+hs300_sw_1class_weight = hs300_sw_1class_weight[['industry_name','date','weight']]
+hs300_sw_1class_weight['date'] = hs300_sw_1class_weight['date'].apply(lambda x:str(x)[:10])
+hs300_sw_1class_weight_arr=hs300_sw_1class_weight.pivot('industry_name','date')
+np.save(add_ready+'hs300_sw_1class_weight',np.array(hs300_sw_1class_weight_arr.values))
+np.save(add_ready+'hs300_sw_1class_weight_industrynames',np.array(hs300_sw_1class_weight_arr.index))
+#tmp = hs300_sw_1class_weight.groupby('date').count()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

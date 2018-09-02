@@ -50,6 +50,12 @@ sp = np.load(add_ready+'windfactors_sp.npy')
 #
 #start_date = np.load(add_ready+'stock_tdate_start.npy').reshape(-1,1) #个股有效期起始时间
 #end_date = np.load(add_ready+'stock_tdate_end.npy').reshape(-1,1) #个股有效期终止时间
+# 
+#weights_000300 = np.load(add_ready+'weights_000300.npy') #沪深300指数个股权重
+#weights_000300_stocklist = np.load(add_ready+'weights_000300_stocklist.npy')
+#
+#hs300_sw_1class_weight = np.load(add_ready+'hs300_sw_1class_weight') #沪深300指数申万一级行业分类权重
+#hs300_sw_1class_weight_industrynames = np.save(add_ready+'hs300_sw_1class_weight_industrynames')
 ##################################################################################
 
 class Clean_Data:
@@ -73,7 +79,8 @@ class Clean_Data:
         # argsort 不能忽略nan值
         res = self.arr.copy()
         not_nan_num = np.sum(~np.isnan(self.arr),axis=0) #非空值数量
-        mid = np.argsort(np.where(np.isnan(self.arr),99999,self.arr),axis=0) #将nan值赋值为大数字然后排序
+        #将nan值赋值为大数字然后排序
+        mid = np.argsort(np.where(np.isnan(self.arr),99999,self.arr),axis=0) 
         #末尾插入一列递增数列，作为名次标记
         mid2 = np.insert(mid,mid.shape[1],values=np.arange(1,mid.shape[0]+1),axis=1) 
         # 逐列进行计算
@@ -149,8 +156,8 @@ class Single_factors_test_regression:
             res_ols_IC = self.OLS_regression(X_IC,factor_arr_nona)
             mid_ic = np.corrcoef(res_ols_IC.resid,return_month_nona[:,0])[0,1]
             #结果
-            res_regr.iloc[n,:] = [self.trade_date[0,n],res_ols.params[1],res_ols.tvalues[1],
-                                  res_wls.params[1],res_wls.tvalues[1],mid_ic]
+            res_regr.iloc[n,:] = [self.trade_date[0,n],res_ols.params[-1],res_ols.tvalues[-1],
+                                  res_wls.params[-1],res_wls.tvalues[-1],mid_ic]
         return res_regr
     
     @staticmethod
@@ -163,7 +170,8 @@ class Single_factors_test_regression:
         for col1 in L1:
             t_abs_mean = np.mean(regress_df[col1].apply(lambda x:abs(x)))
             port_greater_2 = np.sum(regress_df[col1].apply(lambda x:abs(x))>2)/len(regress_df[col1])
-            t_mean_div_std = t_abs_mean/np.std(regress_df[col1].apply(lambda x:abs(x)))
+#            t_mean_div_std = t_abs_mean/np.std(regress_df[col1].apply(lambda x:abs(x)))
+            t_mean_div_std = abs(np.mean(regress_df[col1]))/np.std(regress_df[col1])
             T_res.loc[col1[-3:],'t_abs_mean'] = t_abs_mean
             T_res.loc[col1[-3:],'port_greater_2'] = port_greater_2
             T_res.loc[col1[-3:],'t_mean_div_std'] = t_mean_div_std
@@ -187,8 +195,8 @@ class Single_factors_test_regression:
         return IC_res
 
 class Single_factors_test_group:
-    # 单因子测试之分组法
-    #数据格式：ndarray，3225*115,3225只个股，115个月
+    '''单因子测试之分组法
+       数据格式：ndarray，3225*115,3225只个股，115个月 self=Single_factors_test_group(ep)'''
     capital_initial = 100000000
     def __init__(self,factor_arr):
         self.factor_arr=factor_arr
@@ -198,24 +206,36 @@ class Single_factors_test_group:
         self.trade_date = np.load(add_ready+'month_end_tdate.npy')#.reshape(1,-1) #月末交易日
         self.industry = pd.read_excel(add_winddata+'industry_sw1_class.xlsx')
         self.stockcode = np.load(add_ready+'stockscode.npy')#.reshape(-1,1) #股票代码
+        self.hs300_sw_1class_weight = np.load(add_ready+'hs300_sw_1class_weight.npy') #沪深300指数申万一级行业分类权重
+        self.industrynames = np.load(add_ready+'hs300_sw_1class_weight_industrynames.npy')
         
     def group_net_value(self):
-        factor_df = pd.DataFrame(self.factor_arr,index=self.stockcode,columns=self.trade_date) #因子转化为dataframe类型
-        return_month_df = pd.DataFrame(self.factor_arr,index=self.stockcode,columns=self.trade_date)
+        '''行业中性分组，按单因子值排序分五组构建投资组合，
+           并构建多空组合，添加沪深300和中证500指数作为比较'''
+           
+       industry_w_df=pd.DataFrame(self.hs300_sw_1class_weight,index=self.industrynames,
+                                  columns= self.trade_date)
+       industry_w_df.fillna(0,inplace=True)
+                                 
+        factor_df = pd.DataFrame(self.factor_arr,index=self.stockcode,columns=self.trade_date) 
+        return_month_df = pd.DataFrame(self.return_month,index=self.stockcode,columns=self.trade_date)
+        #资金变化结果df
         capital_df = pd.DataFrame(index = self.trade_date,
-                                   columns=['group1','group2','group3','group4','group5']) #资金变化结果df
+                                   columns=['group1','group2','group3','group4','group5']) 
         capital_df.iloc[0,:]=self.capital_initial
         for n in range(len(factor_df.columns)-1):
             mid_df=pd.merge(factor_df[[factor_df.columns[n]]],
                         return_month_df[[factor_df.columns[n+1]]],
                         left_index=True,right_index=True)
             mid_df = pd.merge(mid_df,self.industry,left_index=True,right_on='code',how='inner')
-            mid_df.rename(columns={factor_df.columns[n]:'factor',factor_df.columns[n+1]:'return_month'},inplace = True)
+            mid_df.rename(columns={factor_df.columns[n]:'factor',
+                                   factor_df.columns[n+1]:'return_month'},inplace = True)
+            mid_df.dropna(inplace=True)
             grouped =mid_df.groupby(by='industry_1class') #按行业分组
             grouped_df = pd.DataFrame(columns=['factor','return_month','group_NO'])
             for indus_name,value in grouped:
                 value.sort_values(by='factor',ascending=False,inplace=True)
-                value.dropna(inplace=True)
+#                value.dropna(inplace=True)
                 value.reset_index(drop=True,inplace=True)
                 group_amount = int(value.shape[0]/5) #每组股票数量
                 for group_n in range(5):
@@ -224,7 +244,8 @@ class Single_factors_test_group:
                         mid_indus_group['group_NO'] = 5
                         grouped_df = grouped_df.append(mid_indus_group)
                     else:
-                        mid_indus_group = value.loc[group_n*group_amount:(group_n+1)*group_amount-1,['factor','return_month']]
+                        mid_indus_group = value.loc[group_n*group_amount:(group_n+1)*group_amount-1,
+                                                    ['factor','return_month']]
                         mid_indus_group['group_NO'] = group_n+1
                         grouped_df = grouped_df.append(mid_indus_group)
             grouped_df.reset_index(drop=True,inplace=True)
@@ -232,10 +253,21 @@ class Single_factors_test_group:
             for group_num in range(5):
                 grouped_indus = grouped_df[grouped_df['group_NO']==(group_num+1)]
                 capital_df.iloc[n+1,group_num] = capital_df.iloc[n,group_num] + \
-                             int(capital_df.iloc[n,group_num]/(5*grouped_indus.shape[0]))*\
-                             (grouped_indus['return_month'].sum()/100)   
+                             int(capital_df.iloc[n,group_num]/(grouped_indus.shape[0]))*\
+                             (grouped_indus['return_month'].sum()/100)
+            print (n,'done')
+        # 计算多空组合
+        if capital_df.iloc[-1,0]>capital_df.iloc[-1,-1]:
+            capital_df['long_short'] = capital_df['group1']-capital_df['group5']+self.capital_initial
+        else:
+            capital_df['long_short'] = capital_df['group5']-capital_df['group1']+self.capital_initial
         netvalue_df = capital_df/self.capital_initial
+        # 加上基准
+        
         return netvalue_df
+        
+    def backtest_indicates(netvalue_df):
+        pass
     
     @staticmethod
     def draw(netvalue_df):

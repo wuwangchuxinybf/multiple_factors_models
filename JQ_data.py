@@ -5,17 +5,21 @@ Spyder Editor
 This is a temporary script file.
 """
 import pandas as pd
+import numpy as np
 #import datetime
 import os
 os.chdir('D:/multiple_factors_models/')
 import date_process_class as dpc
 
 add_data = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/'
+add_winddata = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/wind/'
+add_ready = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/prepared_data/'
+add_pic = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/20180830report/'
 
 from jqdatasdk import *
 #auth("13699278766", "278766") #shifan
-auth("13683552188", "552188") #chenzhenxing
-#auth("13249882580", "882580") #huhuimin
+#auth("13683552188", "552188") #chenzhenxing
+auth("13249882580", "882580") #huhuimin
 #auth("18201159007", "B6486082")
 #auth("17701255381","198261")#群截图
 
@@ -68,8 +72,35 @@ res.to_csv(add_data+'Qdata_MarketDaily_end.csv')
 
 
 
+# 指数权重历史数据
+trade_date = np.load(add_ready+'month_end_tdate.npy').reshape(1,-1) #月末交易日
+for index_id in ['000905.XSHG']: #'000300.XSHG',
+    res = pd.DataFrame()
+    for tdate in trade_date[0,:][::-1]:
+        if tdate=='2018-07-31':
+            res = get_index_weights(index_id, date=tdate)
+            print (res.shape,'first done')
+        else:
+            res = res.append(get_index_weights(index_id, date=tdate))
+        print (tdate,'done')
+    res.reset_index(inplace=True)
+    res['code'] = res['code'].apply(lambda x: x[:-4]+'SH' if x[-4:]=='XSHG' else x[:-4]+'SZ')
+    res.to_csv(add_data+'index_weights_%s.csv'%index_id[:-5])
 
+#申万一级行业分类成分股
+get_industry_stocks(industry_code, date=None)
 
+#指数行业权重
 
+#len(set(res.date))
+#
+#
+#tmp = pd.read_csv(add_data+'index_weights_000300.csv')
+#
+#
+#len(set(tmp.date))
+#
+#
+#tmp.date = tmp.date.apply(lambda x: dpc.DateProcess(x).format_date())
 
 
