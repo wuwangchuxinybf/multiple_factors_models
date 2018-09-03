@@ -7,6 +7,7 @@ Created on Wed Aug 15 21:48:18 2018
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
+import math
 #import matplotlib.pyplot as plt
 import os
 os.chdir('D:/multiple_factors_models/')
@@ -213,9 +214,9 @@ class Single_factors_test_group:
         '''行业中性分组，按单因子值排序分五组构建投资组合，
            并构建多空组合，添加沪深300和中证500指数作为比较'''
            
-       industry_w_df=pd.DataFrame(self.hs300_sw_1class_weight,index=self.industrynames,
+        industry_w_df=pd.DataFrame(self.hs300_sw_1class_weight,index=self.industrynames,
                                   columns= self.trade_date)
-       industry_w_df.fillna(0,inplace=True)
+        industry_w_df.fillna(0,inplace=True)
                                  
         factor_df = pd.DataFrame(self.factor_arr,index=self.stockcode,columns=self.trade_date) 
         return_month_df = pd.DataFrame(self.return_month,index=self.stockcode,columns=self.trade_date)
@@ -232,22 +233,75 @@ class Single_factors_test_group:
                                    factor_df.columns[n+1]:'return_month'},inplace = True)
             mid_df.dropna(inplace=True)
             grouped =mid_df.groupby(by='industry_1class') #按行业分组
-            grouped_df = pd.DataFrame(columns=['factor','return_month','group_NO'])
-            for indus_name,value in grouped:
+            grouped_df = pd.DataFrame(columns=['factor','return_month','group_NO','weight_stock'])
+            
+            for indus_name,value in grouped:pass
+                print (a)
+                weight_indus = industry_w_df.loc[indus_name][n]
                 value.sort_values(by='factor',ascending=False,inplace=True)
-#                value.dropna(inplace=True)
                 value.reset_index(drop=True,inplace=True)
-                group_amount = int(value.shape[0]/5) #每组股票数量
-                for group_n in range(5):
-                    if group_n==4:
-                        mid_indus_group = value.loc[group_n*group_amount:,['factor','return_month']]
-                        mid_indus_group['group_NO'] = 5
-                        grouped_df = grouped_df.append(mid_indus_group)
-                    else:
+                group_amount = value.shape[0]/5 #每组股票数量
+                if int(group_amount)==group_amount:
+                    
+                    for group_n in range(5):
                         mid_indus_group = value.loc[group_n*group_amount:(group_n+1)*group_amount-1,
                                                     ['factor','return_month']]
                         mid_indus_group['group_NO'] = group_n+1
+                        mid_indus_group['weight_stock'] = weight_indus/value.shape[0]
                         grouped_df = grouped_df.append(mid_indus_group)
+                else:
+                    int_group_amount = int(group_amount) #整数部分
+                    dec_group_amount = math.modf(group_amount)[0] #小数部分
+                    for group_n in range(5):
+                        if group_n==0:                        
+                            mid_indus_group = value.loc[:int_group_amount,
+                                                        ['factor','return_month']]
+                            mid_indus_group['group_NO'] = group_n+1
+                            # 正常的
+                            mid_indus_group.loc[:int_group_amount-1,'weight_stock'] \
+                                                = weight_indus/value.shape[0]
+                            # 最后一个分隔的
+                            mid_indus_group.loc[int_group_amount,'weight_stock'] \
+                                                = (weight_indus*dec_group_amount)/value.shape[0]
+                            grouped_df = grouped_df.append(mid_indus_group)
+                        elif group_n == 4:
+                            pass
+                        else:
+                            for group_n in range(5):
+                                print (group_amount*group_n,group_amount*(group_n+1))
+                                
+                                
+                                
+                            int_start =  int(group_amount*group_n)  
+                            dec_start = 1-math.modf(group_amount*group_n)[0]
+                            dec_end = math.modf(group_amount*(group_n+1))[0]
+                            if int(group_amount*(group_n+1))==int(group_amount)*(group_n+1):
+                                mid_indus_group = value.loc[group_n*int_group_amount:(group_n+1)*int_group_amount,
+                                                        ['factor','return_month']]
+                                mid_indus_group['group_NO'] = group_n+1
+                                mid_indus_group.loc[group_n*int_group_amount+1:(group_n+1)*int_group_amount-1,'weight_stock'] \
+                                                = weight_indus/value.shape[0]
+                                # 第一个分隔的
+                                mid_indus_group.loc[group_n*int_group_amount,'weight_stock'] \
+                                                = (weight_indus*(dec_group_amount_start/1))/value.shape[0]
+                                # 最后一个分隔的
+                                mid_indus_group.loc[(group_n+1)*int_group_amount,'weight_stock'] \
+                                                = (weight_indus*(dec_group_amount_end/1))/value.shape[0]
+                                grouped_df = grouped_df.append(mid_indus_group)
+                            else:
+                                mid_indus_group = value.loc[group_n*int_group_amount:(group_n+1)*int_group_amount+1,
+                                                        ['factor','return_month']]
+                                mid_indus_group['group_NO'] = group_n+1
+                                mid_indus_group.loc[group_n*int_group_amount+1:(group_n+1)*int_group_amount,'weight_stock'] \
+                                                = weight_indus/value.shape[0]
+                                # 第一个分隔的
+                                mid_indus_group.loc[group_n*int_group_amount,'weight_stock'] \
+                                                = (weight_indus*dec_group_amount_start)/value.shape[0]
+                                # 最后一个分隔的
+                                mid_indus_group.loc[(group_n+1)*int_group_amount+1,'weight_stock'] \
+                                                = (weight_indus*dec_group_amount_end)/value.shape[0]                                
+                                grouped_df = grouped_df.append(mid_indus_group)
+                
             grouped_df.reset_index(drop=True,inplace=True)
             #资金等权
             for group_num in range(5):
