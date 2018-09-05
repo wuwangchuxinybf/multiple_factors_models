@@ -25,7 +25,7 @@ mpl.rcParams['axes.unicode_minus'] = False
 
 add_winddata = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/wind/'
 add_ready = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/prepared_data/'
-add_pic = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/20180830report/'
+add_pic = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/20180906report/'
 
 # load data
 ##################################################################################
@@ -104,6 +104,10 @@ class Clean_Data:
                        self.arr,99999)
         res = np.where(np.isnan(mid),0,self.arr)
         return res
+    
+    @staticmethod
+    def Round_df(df_factor):
+        return df_factor.applymap(lambda x:'%.4f'%x)
 
 class Single_factors_test_regression:
     # 单因子测试之回归法
@@ -293,7 +297,8 @@ class Single_factors_test_group:
 #        netvalue_df['zz500']=(self.zz500_mkt['chg']/100+1).cumprod().values/(self.zz500_mkt['chg'][0]/100+1)
         netvalue_df['szzz']=(self.szzz_mkt['chg']/100+1).cumprod().values/(self.szzz_mkt['chg'][0]/100+1)        
         return netvalue_df
-        
+    
+    @staticmethod
     def backtest_indicates(netvalue_df):
         #年化收益，最大回撤，sharp ratio
         return_monthly = (netvalue_df/netvalue_df.shift(1)-1).fillna(0)
@@ -317,49 +322,87 @@ class Single_factors_test_group:
         res['volatility'] = np.sqrt(12)*return_monthly.std()*100 #波动率
         res['win_rate'] = (netvalue_df.iloc[1:] - netvalue_df.shift(1).iloc[1:]>0) \
                             .sum()/netvalue_df.iloc[1:].shape[0] #胜率
-        res = res.applymap(lambda x:'%.4f'%x)
+        return res.applymap(lambda x:'%.4f'%x)
 
     @staticmethod
-    def draw(netvalue_df):
+    def draw(netvalue_df,pic_name):
 #         画图
         ax1 = plt.figure(figsize=(16, 9)).add_subplot(1,1,1)
         netvalue_df.plot(ax=ax1,grid=True)
         ax1.set_xlabel('交易日期', fontsize=16) #x轴名称
         ax1.set_ylabel('净值', fontsize=16) #x轴名称
-        plt.title("PE分组净值曲线",fontsize=20) #标题
+        plt.title("分组净值曲线",fontsize=20) #标题
         plt.legend(loc='best')
-        
+        plt.savefig(add_pic+pic_name+'.png',dpi=400,bbox_inches='tight')
  
 if __name__=='__main__':
-    test = Single_factors_test_group(ep)
-    test.group_net_value()
     
-#    #pe倒数值
-#    ep_med_de = Clean_Data(ep).Median_deextremum()
-#    ep_m_zscore = Clean_Data(ep_med_de).Z_score()
-#    ep_num = Clean_Data(ep_m_zscore).Fill_na()
-#    
-#    Single_factors_test_ins = Single_factors_test_regression(ep_num)
-#    res_ep_num = Single_factors_test_ins.single_factor_regress()
-#    T_ep_num_res = Single_factors_test_ins.T_analysis(res_ep_num)
-#    IC_ep_num_res = Single_factors_test_ins.IC_analysis(res_ep_num)
+    #因子倒数值
+    # 回归法
+    factors_origin = ['ep','bp','sp']
+    sf_res_num_T = pd.DataFrame()
+    sf_res_num_IC = pd.DataFrame()
+    for fac_str in factors_origin:
+        fac = eval(fac_str)
+        # 数据清洗
+        fac_med_de = Clean_Data(fac).Median_deextremum()
+        fac_m_zscore = Clean_Data(fac_med_de).Z_score()
+        fac_num = Clean_Data(fac_m_zscore).Fill_na()
+        # 单因子回归
+        Single_factors_test_ins = Single_factors_test_regression(fac_num)
+        res_fac_num = Single_factors_test_ins.single_factor_regress()
+        # T值分析
+        T_fac_num_res = Single_factors_test_ins.T_analysis(res_fac_num)
+        T_fac_num_res = Clean_Data.Round_df(T_fac_num_res) #保留四位小数
+        T_fac_num_res['factor'] = fac_str #添加因子名称
+        # IC值分析
+        IC_fac_num_res = Single_factors_test_ins.IC_analysis(res_fac_num)
+        IC_fac_num_res = Clean_Data.Round_df(IC_fac_num_res)
+        IC_fac_num_res['factor'] = fac_str 
+        #结果
+        sf_res_num_T = sf_res_num_T.append(T_fac_num_res)
+        sf_res_num_IC = sf_res_num_IC.append(IC_fac_num_res)
+
     
+    #因子倒数序数值
+    #回归法
+    sf_res_ord_T = pd.DataFrame()
+    sf_res_ord_IC = pd.DataFrame()
+    for fac_str in factors_origin:
+        fac = eval(fac_str)
+        # 数据清洗
+        fac_ord = Clean_Data(fac).Ordinal_values()
+        fac_o_zscore = Clean_Data(fac_ord).Z_score()
+        fac_ordinal = Clean_Data(fac_o_zscore).Fill_na()
+        # 单因子回归
+        res_fac_ord = Single_factors_test_regression(fac_ordinal).single_factor_regress()
+        # T值分析
+        T_fac_ord_res = Single_factors_test_ins.T_analysis(res_fac_ord)
+        T_fac_ord_res = Clean_Data.Round_df(T_fac_ord_res) #保留四位小数
+        T_fac_ord_res['factor'] = fac_str #添加因子名称
+        # IC值分析
+        IC_fac_ord_res = Single_factors_test_ins.IC_analysis(res_fac_ord)
+        IC_fac_ord_res = Clean_Data.Round_df(IC_fac_ord_res)
+        IC_fac_ord_res['factor'] = fac_str 
+        #结果
+        sf_res_ord_T = sf_res_ord_T.append(T_fac_ord_res)
+        sf_res_ord_IC = sf_res_ord_IC.append(IC_fac_ord_res)
+        
     
-    
-    
-    
-#    #pe倒数序数值
-#    ep_ord = Clean_Data(ep).Ordinal_values()
-#    ep_o_zscore = Clean_Data(ep_ord).Z_score()
-#    ep_ordinal = Clean_Data(ep_o_zscore).Fill_na()
-#    res_ep_ord = Single_factors_test_regression(ep_ordinal).single_factor_regress()
-
-
-
-
-
-
-
+    #因子倒数
+    #分组法
+    sf_res_group = pd.DataFrame()
+    for fac_str in factors_origin:
+        fac = eval(fac_str)
+        
+        sf_group_ins = Single_factors_test_group(fac)
+        sf_netvalue_df = sf_group_ins.group_net_value()
+        #分组回测结果指标
+        sf_group_res = sf_group_ins.backtest_indicates(sf_netvalue_df)
+        sf_group_res['factor'] = fac_str
+        sf_res_group = sf_res_group.append(sf_group_res)
+        #画图
+        sf_group_ins.draw(sf_netvalue_df,fac_str)
 
 
 

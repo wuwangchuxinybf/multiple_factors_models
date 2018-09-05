@@ -20,7 +20,7 @@ mpl.rcParams['axes.unicode_minus'] = False
 
 add_winddata = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/wind/'
 add_ready = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/prepared_data/'
-add_pic = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/20180830report/'
+add_pic = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/20180906report/'
 
 class Single_factors_draw():
     def __init__(self):
@@ -29,7 +29,7 @@ class Single_factors_draw():
         self.ps = np.load(add_ready+'windfactors_ps.npy')
         self.industry = pd.read_excel(add_winddata+'industry_sw1_class.xlsx')
         self.stockcode = np.load(add_ready+'stockscode.npy').reshape(-1,1)
-        self.trade_date = np.load(add_ready+'month_end_tdate.npy')#.reshape(1,-1)
+        self.trade_date = np.load(add_ready+'month_end_tdate.npy').reshape(1,-1)
         self.float_mv = np.load(add_ready+'wind_float_mv.npy')
         #industry_dict = {'交通运输':'JTYS','休闲服务':'XXFW','传媒':'CM','公用事业':'GYSY',
         #                 '农林牧渔':'NLMY','化工':'HG','医药生物':'YYSW','商业贸易':'SYMY',
@@ -156,9 +156,9 @@ class Single_factors_draw():
     def factor_mkt_value(self,factor):
         #按流通市值分组求因子均值，得到同年度排序结果
         mid_factor = Clean_Data(factor).Median_deextremum()
-        factor_df = pd.DataFrame(mid_factor,columns=self.trade_date,index=self.stockcode[:,0])
+        factor_df = pd.DataFrame(mid_factor,columns=self.trade_date[0],index=self.stockcode[:,0])
         factor_df = factor_df.groupby([x[:4] for x in factor_df.columns],axis=1).last()
-        float_mv_df = pd.DataFrame(self.float_mv,columns=self.trade_date,index=self.stockcode[:,0])
+        float_mv_df = pd.DataFrame(self.float_mv,columns=self.trade_date[0],index=self.stockcode[:,0])
         float_mv_df = float_mv_df.groupby([x[:4] for x in float_mv_df.columns],axis=1).last()
         
         fac_indus_res = pd.DataFrame(index = factor_df.columns,
@@ -204,25 +204,25 @@ class Single_factors_draw():
         plt.legend(loc='best')
     
     def main(self):
-        # 仅画图
+        # 申万一级行业因子值分布图
         pe = self.mean_industry_pe()
         pb = self.mean_industry_pb()
         ps = self.mean_industry_ps()
         pe_pb_ps = self.fomat_df(pe,pb,ps)
-        
         reversed_tdate = self.trade_date[0,:][::-1]
         for num in range(1,len(reversed_tdate)+1):
             tdate = reversed_tdate[num-1]
             self.draw(pe_pb_ps,'PE_%s'%num,'PB_%s'%num,'PS_%s'%num,tdate)
-        # 年末因子均值按行业排名
+        # 年末因子均值按申万一级行业排名
         self.ordinal_industry_pe()
         self.ordinal_industry_pb()
         self.ordinal_industry_ps()
 
 if __name__=='__main__':
+    # 申万一级行业因子值分布图;年末因子均值按申万一级行业排名
     drawing = Single_factors_draw()
     drawing.main()
-    
+    #按每年最后一个月的流通市值对因子排序，然后分组取均值，做申万一级行业中性处理
     drawing.draw_mkt_value(drawing.factor_mkt_value(drawing.pe))
     drawing.draw_mkt_value(drawing.factor_mkt_value(drawing.pb))
     drawing.draw_mkt_value(drawing.factor_mkt_value(drawing.ps))
