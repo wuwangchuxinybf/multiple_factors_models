@@ -22,6 +22,15 @@ add_winddata = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/wind/'
 add_ready = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/prepared_data/'
 add_pic = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/20180906report/'
 
+#pe_ttm
+#pb_mrq
+#ps_ttm
+#pcf_ocf_ttm   windfactors_pcf_ocf.npy
+#dividendyield2  windfactors_dividendyield.npy
+#val_ortomv_ttm  windfactors_val_ortomv.npy
+#val_evtoebitda2  windfactors_evtoebitda.npy
+
+
 class Single_factors_draw():
     def __init__(self):
         self.pe = np.load(add_ready+'windfactors_pe.npy')

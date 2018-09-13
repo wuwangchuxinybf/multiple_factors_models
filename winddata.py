@@ -8,20 +8,20 @@ Created on Fri Jul 27 11:14:40 2018
 
 #res = wp.w.wsd("000651.SZ", , "2017-06-01", "2018-07-20", "unit=1;PriceAdj=F")
 ############华泰研报
-#factors_Value= "pe_ttm,val_pe_deducted_ttm,pb_lf,ps_ttm,pcf_ncf_ttm,pcf_ocf_ttm,\
-#             fcff,mkt_cap_ard,dividendyield2,ev2_to_ebitda,profit_ttm"  #字段
-#factors_Growth = "oper_rev,or_ttm,net_profit_is,profit_ttm,net_cash_flows_oper_act,\
-#                   operatecashflow_ttm,roe_diluted,tot_equity"
-#factors_financial = "qfa_roe,qfa_roa,qfa_grossprofitmargin,nptocostexpense_qfa,roic,qfa_operateincometoebt,\
-#                    qfa_deductedprofittoprofit,qfa_ocftosales,ocftocf_qfa,currentdebttodebt,current,assetsturn"
-#factors_Leverage = "current,cashtocurrentdebt,wgsd_com_eq_paholder,wgsd_assets"
-#factors_size = "mkt_freeshares"
-#factors_Momentum = "return_1m,return_3m,return_6m,return_12m,wgt_return_1m,wgt_return_3m,wgt_return_6m,\
-#                     wgt_return_12m,exp_wgt_return_1m,exp_wgt_return_3m,exp_wgt_return_6m,exp_wgt_return_12m"
-#factors_Volatility = "stdevr"
-#factors_Turnover = "turn"
-#factors_Shareholder = "holder_sumsqupcttop5,holder_sumsqupcttop10"
-#factors_zijinliuxiang = "mfd_buyamt_d,mfd_buyvol_d,mfd_buyord,mfd_buyamt_a,mfd_buyvol_a"
+factors_Value= "pe_ttm,val_pe_deducted_ttm,pb_lf,ps_ttm,pcf_ncf_ttm,pcf_ocf_ttm,\
+             fcff,mkt_cap_ard,dividendyield2,ev2_to_ebitda,profit_ttm"  #字段
+factors_Growth = "oper_rev,or_ttm,net_profit_is,profit_ttm,net_cash_flows_oper_act,\
+                   operatecashflow_ttm,roe_diluted,tot_equity"
+factors_financial = "qfa_roe,qfa_roa,qfa_grossprofitmargin,nptocostexpense_qfa,roic,qfa_operateincometoebt,\
+                    qfa_deductedprofittoprofit,qfa_ocftosales,ocftocf_qfa,currentdebttodebt,current,assetsturn"
+factors_Leverage = "current,cashtocurrentdebt,wgsd_com_eq_paholder,wgsd_assets"
+factors_size = "mkt_freeshares"
+factors_Momentum = "return_1m,return_3m,return_6m,return_12m,wgt_return_1m,wgt_return_3m,wgt_return_6m,\
+                     wgt_return_12m,exp_wgt_return_1m,exp_wgt_return_3m,exp_wgt_return_6m,exp_wgt_return_12m"
+factors_Volatility = "stdevr"
+factors_Turnover = "turn"
+factors_Shareholder = "holder_sumsqupcttop5,holder_sumsqupcttop10"
+factors_zijinliuxiang = "mfd_buyamt_d,mfd_buyvol_d,mfd_buyord,mfd_buyamt_a,mfd_buyvol_a"
 
  东吴金工分享会因子
 #基本面因子
@@ -104,6 +104,43 @@ factors = "val_pe_deducted_ttm,pe_ttm,pb_lf,ps_ttm,pcf_ocf_ttm,dividendyield2,fa
             mkt_cap_ard,tot_liab,fa_cce,fa_roenp_ttm,fa_roa_ttm,fa_roicebit_ttm,fa_taturn_ttm,\
             west_netprofit_fy1_6m,tech_revs5,tech_revs5m20,val_lnfloatmv"
 
+# 估值
+#pe_ttm 前复权
+#pb_lf 前复权
+#ps_ttm 前复权
+pcf_ocf_ttm   #市现率PCF（经营现金流TTM）
+#每股股价为每股经营现金流(TTM)的倍数。可回测的估值指标。
+#总市值2/经营现金净流量TTM,如财务报表币种与市值币种不同，则财务报表数据按报告期截止日汇率转换为市值币种。
+dividendyield2
+#fa_ebitda_ttm 后复权
+mkt_cap_ard
+tot_liab
+fa_cce
+#fa_roenp_ttm 后复权
+fa_roa_ttm 后复权
+fa_roicebit_ttm
+fa_taturn_ttm
+west_netprofit_fy1_6m
+tech_revs5
+tech_revs5m20
+val_lnfloatmv
+
+#pe_ttm,# 市盈率，前复权
+#val_pe_deducted_ttm, #市盈率，扣除非经常损益
+#val_petohist20, # 过去一个月PE的均值
+#val_petohist60, # 过去三个月PE的均值
+#val_petohist120, # 过去6个月PE的均值
+#val_petohist250, # 过去一年PE的均值
+pb_mrq, # 最新季报市净率
+#ps_ttm, # 市销率，前复权
+pcf_ocf_ttm, #市现率PCF（经营现金流TTM）
+dividendyield2, #股息率（近12个月）
+#val_floatmv, #自由流通市值，前复权
+val_ortomv_ttm, #营收市值比
+val_evtoebitda2 #企业
+
+
+
 res = pd.DataFrame(columns=['VAL_PE_DEDUCTED_TTM','PE_TTM','PB_LF','PS_TTM','PCF_OCF_TTM','DIVIDENDYIELD2',\
                             'FA_EBITDA_TTM','MKT_CAP_ARD','TOT_LIAB','FA_CCE','FA_ROENP_TTM',\
                             'FA_ROA_TTM','FA_ROICEBIT_TTM','FA_TATURN_TTM','WEST_NETPROFIT_FY1_6M',\
@@ -124,6 +161,7 @@ for j_code in stock_info['code']:
         unsuc.append(j_code)
         print (j_code,fin_result.ErrorCode)
 res.to_csv('stock_financial_data.csv')
+
 
 
 #fp = open('evaluation.csv', 'w',newline='')

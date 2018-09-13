@@ -37,6 +37,19 @@ pb = np.load(add_ready+'windfactors_pb.npy')
 bp = np.load(add_ready+'windfactors_bp.npy')
 ps = np.load(add_ready+'windfactors_ps.npy')
 sp = np.load(add_ready+'windfactors_sp.npy')
+pcf_ocf = np.load(add_ready+'windfactors_pcf_ocf.npy') #市现率
+dividendyield = np.load(add_ready+'windfactors_dividendyield.npy') #股息率
+ortomv = np.load(add_ready+'windfactors_val_ortomv.npy') #营收市值比
+evtoebitda = np.load(add_ready+'windfactors_evtoebitda.npy')  #企业倍数
+
+profittomv = np.load(add_ready+'windfactors_profittomv.npy')
+orgr = np.load(add_ready+'windfactors_orgr.npy')
+invturn = np.load(add_ready+'windfactors_invturn.npy')
+gpmgr = np.load(add_ready+'windfactors_gpmgr.npy')
+roicebit = np.load(add_ready+'windfactors_roicebit.npy')
+
+
+
 #
 #float_mv = np.load(add_ready+'wind_float_mv.npy')
 #
@@ -239,7 +252,7 @@ class Single_factors_test_group:
             mid_df.dropna(inplace=True)
             grouped =mid_df.groupby(by='industry_1class') #按行业分组
             grouped_df = pd.DataFrame(columns=['factor','return_month','group_NO','weight_stock'])
-            
+            #行业中性分组，被分组隔断的个股权重按照比例分配
             for indus_name,value in grouped:
                 base_weight_stock = industry_w_df.loc[indus_name][n]/value.shape[0]
                 value.sort_values(by='factor',ascending=False,inplace=True)
@@ -331,7 +344,7 @@ class Single_factors_test_group:
         netvalue_df.plot(ax=ax1,grid=True)
         ax1.set_xlabel('交易日期', fontsize=16) #x轴名称
         ax1.set_ylabel('净值', fontsize=16) #x轴名称
-        plt.title("分组净值曲线",fontsize=20) #标题
+        plt.title("%s分组净值曲线"%pic_name,fontsize=20) #标题
         plt.legend(loc='best')
         plt.savefig(add_pic+pic_name+'.png',dpi=400,bbox_inches='tight')
  
@@ -339,7 +352,15 @@ if __name__=='__main__':
     
     #因子倒数值
     # 回归法
-    factors_origin = ['ep','bp','sp']
+    factors_origin = ['ep','bp','sp','pcf_ocf','dividendyield','ortomv','evtoebitda']
+    
+#    profittomv,收益市值比(TTM)
+#    orgr,增长率_营业收入(TTM)
+#    invturn,存货周转率(TTM)
+#    gpmgr,增长率_毛利率(TTM)
+#    roicebit，投入资本回报率ROIC(TTM)
+
+#    factors_origin = ['profittomv','orgr','invturn','gpmgr','roicebit']  
     sf_res_num_T = pd.DataFrame()
     sf_res_num_IC = pd.DataFrame()
     for fac_str in factors_origin:
@@ -404,7 +425,7 @@ if __name__=='__main__':
         #画图
         sf_group_ins.draw(sf_netvalue_df,fac_str)
 
-
+sf_res_group = sf_res_group.reset_index()
 
 
 

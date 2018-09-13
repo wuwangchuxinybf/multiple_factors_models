@@ -40,7 +40,8 @@ def get_stock_startdate_enddate():
     for j in range(len(stockcode['market_date'])):
         if stockcode.loc[j,'market_date']<'2009-01-01':
             stockcode.loc[j,'market_date'] = '2009-01-01'
-    stockcode.to_csv(add_data+'stock_code.csv')
+    stockcode.sort_values(by='code',inplace=True)
+    stockcode.to_csv(add_data+'stock_code2.csv')
     #保存日期
     stockcode.market_date = stockcode.market_date.apply(lambda x:dpc.DateProcess(x).format_date())
     stockcode.enddate = stockcode.enddate.apply(lambda x:dpc.DateProcess(x).format_date())
