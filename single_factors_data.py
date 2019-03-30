@@ -33,9 +33,6 @@ financial_data_all.DATE = financial_data_all.DATE.apply(lambda x :dpc.DateProces
 np.save(add_ready+'windfactors_financial_q',financial_data_all)
 
 # pe因子
-#pettm_month = pd.read_csv(add_winddata+'pettm_month_data.csv',index_col=0)
-#pettm_month = Drop_nan_columns(pettm_month)
-#pettm_month.sort_index(inplace=True)
 pe_ttm = pd.read_csv(add_winddata+'pe_ttm.csv',index_col=0)
 pe_ttm = Drop_nan_columns(pe_ttm)
 pe_ttm.sort_index(inplace=True)
@@ -81,10 +78,10 @@ np.save(add_ready+'industry_sw1',industry_sw1.values) #行业虚拟变量矩阵
 np.save(add_ready+'industry_sw1_name',np.array(industry_sw1.columns)) #行业名称
 
 #流通市值
-float_mv = pd.read_csv(add_winddata+'float_market_value.csv',index_col=0)
-float_mv = Drop_nan_columns(float_mv)
-float_mv.sort_index(inplace=True)
-np.save(add_ready+'wind_float_mv',np.array(float_mv.values))
+val_floatmv = pd.read_csv(add_winddata+'val_floatmv.csv',index_col=0)
+val_floatmv = Drop_nan_columns(val_floatmv)
+val_floatmv.sort_index(inplace=True)
+np.save(add_ready+'wind_float_mv',np.array(val_floatmv.values))
     
 # pb因子
 #pb_mrq = pd.read_csv(add_winddata+'pb_mrq.csv',index_col=0)
@@ -102,13 +99,13 @@ data_bp = pb_lf_data.apply(lambda x:1./x)
 np.save(add_ready+'windfactors_bp',np.array(data_bp.values)) #bp值，3225*115
 
 # ps因子
-psttm_month = pd.read_csv(add_winddata+'psttm_month_data.csv',index_col=0)
-psttm_month = Drop_nan_columns(psttm_month)
-psttm_month.sort_index(inplace=True)
+ps_ttm = pd.read_csv(add_winddata+'ps_ttm.csv',index_col=0)
+ps_ttm = Drop_nan_columns(ps_ttm)
+ps_ttm.sort_index(inplace=True)
 #保存原始ps值
-np.save(add_ready+'windfactors_ps',np.array(psttm_month.values)) #pb值，3225*115
+np.save(add_ready+'windfactors_ps',np.array(ps_ttm.values)) #pb值，3225*115
 #取ps因子的倒数
-data_sp = psttm_month.apply(lambda x:1./x)
+data_sp = ps_ttm.apply(lambda x:1./x)
 np.save(add_ready+'windfactors_sp',np.array(data_sp.values)) #pe值，3225*115
 
 
@@ -291,7 +288,7 @@ west_netprofit_fy1_6m_part2 = pd.read_csv(add_winddata+'west_netprofit_fy1_6m_pa
 west_netprofit_fy1_6m_part2 = Drop_nan_columns(west_netprofit_fy1_6m_part2)
 west_netprofit_fy1_6m = west_netprofit_fy1_6m_part1.append(west_netprofit_fy1_6m_part2)
 west_netprofit_fy1_6m.sort_index(inplace=True)
-np.save(add_ready+'windfactors_tagr',np.array(west_netprofit_fy1_6m.values))
+np.save(add_ready+'windfactors_netprofit_fy1_6m',np.array(west_netprofit_fy1_6m.values))
 
 #fa_arturn_ttm,应收账款周转率(TTM)
 fa_arturn_ttm_part1 = pd.read_csv(add_winddata+'fa_arturn_ttm_part1.csv',index_col=0)
@@ -307,11 +304,97 @@ fa_arturn_ttm = fa_arturn_ttm_part1.append(fa_arturn_ttm_part2).append(fa_arturn
 fa_arturn_ttm.sort_index(inplace=True)
 np.save(add_ready+'windfactors_arturn',np.array(fa_arturn_ttm.values))
 
-#
-#return_month = np.load(add_ready+'wind_return_month.npy')/100+1
-#return_month_roll3 = np.roll(return_month,3)
-#return_month_roll2 = np.roll(return_month,2)
-#return_month_roll1 = np.roll(return_month,1)
-#momemtum_3m = return_month_roll1*return_month_roll2*return_month_roll3-1
+#tech_revs60,过去3个月的价格动量
+tech_revs60 = pd.read_csv(add_winddata+'tech_revs60.csv',index_col=0)
+tech_revs60 = Drop_nan_columns(tech_revs60)
+tech_revs60.sort_index(inplace=True)
+np.save(add_ready+'windfactors_revs60',np.array(tech_revs60.values))
+
+#tech_rstr12,12月相对强势
+tech_rstr12_part1 = pd.read_csv(add_winddata+'tech_rstr12_part1.csv',index_col=0)
+tech_rstr12_part1 = Drop_nan_columns(tech_rstr12_part1)
+tech_rstr12_part2 = pd.read_csv(add_winddata+'tech_rstr12_part2.csv',index_col=0)
+tech_rstr12_part2 = Drop_nan_columns(tech_rstr12_part2)
+tech_rstr12 = tech_rstr12_part1.append(tech_rstr12_part2)
+tech_rstr12.sort_index(inplace=True)
+np.save(add_ready+'windfactors_rstr12',np.array(tech_rstr12.values))
+
+#fa_debttoasset,资产负债率
+fa_debttoasset = pd.read_csv(add_winddata+'fa_debttoasset.csv',index_col=0)
+fa_debttoasset = Drop_nan_columns(fa_debttoasset)
+fa_debttoasset.sort_index(inplace=True)
+np.save(add_ready+'windfactors_debttoasset',np.array(fa_debttoasset.values))
+
+#fa_current,流动比率
+fa_current = pd.read_csv(add_winddata+'fa_current.csv',index_col=0)
+fa_current = Drop_nan_columns(fa_current)
+fa_current.sort_index(inplace=True)
+np.save(add_ready+'windfactors_current',np.array(fa_current.values))
+
+#fa_cfogr_ttm,增长率_经营活动产生的现金流量净额(TTM)
+fa_cfogr_ttm_part1 = pd.read_csv(add_winddata+'fa_cfogr_ttm_part1.csv',index_col=0)
+fa_cfogr_ttm_part1 = Drop_nan_columns(fa_cfogr_ttm_part1)
+fa_cfogr_ttm_part2 = pd.read_csv(add_winddata+'fa_cfogr_ttm_part2.csv',index_col=0)
+fa_cfogr_ttm_part2 = Drop_nan_columns(fa_cfogr_ttm_part2)
+fa_cfogr_ttm_part3 = pd.read_csv(add_winddata+'fa_cfogr_ttm_part3.csv',index_col=0)
+fa_cfogr_ttm_part3 = Drop_nan_columns(fa_cfogr_ttm_part3)
+fa_cfogr_ttm = fa_cfogr_ttm_part1.append(fa_cfogr_ttm_part2).append(fa_cfogr_ttm_part3)
+fa_cfogr_ttm.sort_index(inplace=True)
+np.save(add_ready+'windfactors_cfogr',np.array(fa_cfogr_ttm.values))
+
+
+#剔除上市6个月之内的新股
+stockscode = np.load(add_ready+'matind_stockscode.npy')
+month_end_tdate = np.load(add_ready+'matcol_month_end_tdate.npy') 
+stock_info2 = pd.read_csv(add_ready+'../stock_code.csv')
+stock_info2.start_date = stock_info2.start_date.apply(lambda x :dpc.DateProcess(x).format_date())
+stock_info2.start_date_defer6m = stock_info2.start_date_defer6m.apply(lambda x :dpc.DateProcess(x).format_date())
+def del_cixin(fac_arr):
+    for s in range(fac_arr.shape[0]):
+        if stock_info2.loc[s,'start_date'] == stock_info2.loc[s,'start_date_defer6m']:
+            continue
+        else:
+            mid_bool = (month_end_tdate>=stock_info2.loc[s,'start_date']) & \
+                             (month_end_tdate<stock_info2.loc[s,'start_date_defer6m'])
+            fac_arr[s,mid_bool] = np.nan
+    return fac_arr
+
+ep = np.load(add_ready+'windfactors_ep.npy')
+ep = del_cixin(ep)
+mid = ~np.isnan(ep).all(axis=1)
+stockscode = stockscode[mid]
+ep = ep[mid]
+np.save(add_ready+'del_cixin/windfactors_ep.npy',ep)
+
+# 个股起始和终止时间
+stock_tdate_start = stock_info2.start_date_defer6m[mid].reset_index(drop=True)
+stock_tdate_end = stock_info2.enddate[mid].reset_index(drop=True).apply(lambda x:dpc.DateProcess(x).format_date())
+np.save(add_ready+'del_cixin/stock_tdate_start',stock_tdate_start)
+np.save(add_ready+'del_cixin/stock_tdate_end',stock_tdate_end)
+
+# 
+L = os.listdir(add_ready)
+L2 = list(filter(lambda x:x[:11]=='windfactors',L))
+L2.remove('windfactors_financial_q.npy')
+L2.remove('windfactors_ep.npy')
+
+names=locals()
+for f in L2:
+    mid_fac = del_cixin(np.load(add_ready+f))
+    names[f[12:-4]] = mid_fac[mid,:] 
+    np.save(add_ready+'del_cixin/'+f,mid_fac[mid,:])
+
+#wind_float_mv
+mid_fac2 = del_cixin(np.load(add_ready+'wind_float_mv.npy'))
+np.save(add_ready+'del_cixin/wind_float_mv.npy',mid_fac2[mid,:])
+#wind_return_month
+mid_fac2 = del_cixin(np.load(add_ready+'wind_return_month.npy'))
+np.save(add_ready+'del_cixin/wind_return_month.npy',mid_fac2[mid,:])
+
+#industry_sw1 申万行业一级分类哑变量矩阵
+#matind_stockscode = np.load(add_ready+'matind_stockscode.npy')
+industry_sw1 = np.load(add_ready+'industry_sw1.npy')
+#matind_stockscode_cixin = np.load(add_ready+'del_cixin/matind_stockscode.npy')
+np.save(add_ready+'del_cixin/industry_sw1.npy',industry_sw1[mid])
 
 

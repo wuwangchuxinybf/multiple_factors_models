@@ -12,11 +12,11 @@ os.chdir('C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/')
 stock_info = pd.read_csv('stock_code.csv')
 stock_info.sort_values(by='code',inplace=True)
 stock_info.reset_index(drop=True,inplace=True)
-
+ 
 wp.w.start()
 
 ###总体指标#####################################################################
-val_floatmv, #自由流通市值，前复权  ### ？？
+val_floatmv, #自由流通市值，后复权
 
 ###估值维度：估值因子############################################################
 #指标：市盈率,市净率,市销率,企业价值倍数,股息率
@@ -29,7 +29,7 @@ pe_ttm,# 市盈率，后复权
 ##pb_mrq, # 最新季报市净率,后复权，wind没有数据
 #根据字面意思下面的指标由于指定日股本或财务数据在数据提取日之后可能存在上市公司披露变更情形
 pb_lf,# 暂时用的这个pb指标，前复权 ### ？？
-ps_ttm, # 市销率，前复权,SP=销售收入/市值 ### ？？
+ps_ttm, # 市销率，后复权,SP=销售收入/市值
 pcf_ocf_ttm, #市现率PCF（经营现金流TTM），后复权,plus
 dividendyield2, #股息率（近12个月），后复权
 #val_ortomv_ttm, #营收市值比，后复权，plus，=营业收入/市值,和ps类似，废弃,
@@ -46,8 +46,8 @@ fa_gpmgr_ttm,增长率_毛利率(TTM),后复权
 fa_grossprofitmargin_ttm,销售毛利率(TTM),后复权
 #fa_roaavg_5y,5年平均资产回报率，不支持的指标！！！
 fa_orgr_ttm,增长率_营业收入(TTM),后复权,plus
-fa_npgr_ttm,增长率_净利润(TTM),plus ？？
-fa_cfogr_ttm,增长率_经营活动产生的现金流量净额(TTM),plus ？？
+#fa_npgr_ttm,增长率_净利润(TTM),plus，有了毛利率增长率就暂时不需要这个了
+fa_cfogr_ttm,增长率_经营活动产生的现金流量净额(TTM),plus,后复权
 ###质量维度二：经营效率##########################################################
 #指标：RNOA,ATO,经营效率边际变化,存货周转率 ##############
 fa_invturn_ttm,存货周转率(TTM)，后复权
@@ -78,8 +78,8 @@ fa_tagr,增长率-总资产 ,后复权
 stmnote_RDexptosales,研发支出总额占营业收入比例,后复权
 
 ###添加维度：杠杆因子############################################################
-fa_debttoasset,资产负债率,plus
-fa_current,流动比率,plus
+fa_debttoasset,资产负债率,plus,后复权
+fa_current,流动比率,plus,后复权
 
 ###利用市场信号修正策略##########################################################
 #市场参与者行为
@@ -99,7 +99,7 @@ tech_revs60,过去3个月的价格动量,后复权
 #指标：封闭式基金折价率、共同基金净买入、市场中的总投资额、BW指标
 #tech_bullpower,多头力道
 #tech_cyf,市场能量指标
-tech_rstr12,12月相对强势
+tech_rstr12,12月相对强势,后复权
 
 
 
@@ -131,7 +131,13 @@ tech_rstr12,12月相对强势
 #factors = "stmnote_RDexptosales"
 #factors = "west_netprofit_fy1_6m"
 #factors = "fa_arturn_ttm"
-factors = "tech_revs60"
+#factors = "tech_revs60"
+#factors = "tech_rstr12"
+#factors = "fa_debttoasset"
+#factors = "fa_current"
+#factors = "fa_cfogr_ttm"
+#factors = "ps_ttm"
+factors = "val_floatmv"
 
 res = pd.DataFrame()
 suc=[]
@@ -176,17 +182,23 @@ for j_code in stock_info['code']:
 #res.to_csv('stmnote_RDexptosales.csv')
 #res.to_csv('west_netprofit_fy1_6m_part1.csv')
 #res.to_csv('fa_arturn_ttm_part1.csv')
-res.to_csv('tech_revs60.csv')
-
+#res.to_csv('tech_revs60.csv')
+#res.to_csv('tech_rstr12_part1.csv')
+#res.to_csv('fa_debttoasset.csv')
+#res.to_csv('fa_current.csv')
+#res.to_csv('fa_cfogr_ttm_part1.csv')
+#res.to_csv('ps_ttm.csv')
+res.to_csv('val_floatmv.csv')
 
 #添加漏掉的报错的
 #stock_info = pd.read_csv('stock_code.csv')
 #L_tmp = ['000929.SZ','600835.SH']
 
-#np.save(add_ready+'unsuc_fa_arturn3',np.array(unsuc))
+#np.save(add_ready+'unsuc_fa_cfogr2',np.array(unsuc))
 #import numpy as np
-#L_tmp = np.load(add_ready+'unsuc_fa_arturn3.npy')
-#factors = "fa_arturn_ttm"
+#add_ready = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/prepared_data/'
+#L_tmp = np.load(add_ready+'unsuc_fa_cfogr2.npy')
+#factors = "fa_cfogr_ttm"
 #
 #res = pd.DataFrame()
 #suc=[]
@@ -204,4 +216,4 @@ res.to_csv('tech_revs60.csv')
 #    else:
 #        unsuc.append(j_code)
 #        print (j_code,fin_result.ErrorCode)
-#res.to_csv('fa_arturn_ttm_part4.csv')
+#res.to_csv('fa_cfogr_ttm_part3.csv')
