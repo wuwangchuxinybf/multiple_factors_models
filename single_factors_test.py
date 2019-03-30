@@ -324,39 +324,66 @@ class Single_factors_test_group:
                 value.sort_values(by='factor',ascending=False,inplace=True) #因子倒序排列
                 value.reset_index(drop=True,inplace=True)
                 group_amount = value.shape[0]/5 #每组股票数量
-                if int(group_amount)==group_amount:
-                    for group_n in range(5):
-                        mid_indus_group = value.loc[group_n*group_amount:(group_n+1)*group_amount-1,
-                                                    ['factor','return_month']]
-                        mid_indus_group['group_NO'] = group_n+1
-                        mid_indus_group['weight_stock'] = base_weight_stock
-                        grouped_df = grouped_df.append(mid_indus_group)
+                if group_amount>=1:
+                    if int(group_amount)==group_amount:
+                        for group_n in range(5):
+                            mid_indus_group = value.loc[group_n*group_amount:(group_n+1)*group_amount-1,
+                                                        ['factor','return_month']]
+                            mid_indus_group['group_NO'] = group_n+1
+                            mid_indus_group['weight_stock'] = base_weight_stock
+                            grouped_df = grouped_df.append(mid_indus_group)
+                    else:
+                        for group_n in range(5):
+                            int_start =  int(group_amount*group_n)
+                            int_end = int(group_amount*(group_n+1))
+                            dec_start = 1-math.modf(group_amount*group_n)[0]
+                            dec_end = math.modf(group_amount*(group_n+1))[0]
+                            if group_n==0:                        
+                                mid_indus_group = value.loc[:int_end,['factor','return_month']]
+                                mid_indus_group['group_NO'] = 1
+                                # 正常的
+                                mid_indus_group.loc[:int_end-1,'weight_stock']= base_weight_stock
+                                # 最后一个分隔的
+                                mid_indus_group.loc[int_end,'weight_stock']= base_weight_stock*dec_end
+                                grouped_df = grouped_df.append(mid_indus_group)
+                            elif group_n == 4:
+                                mid_indus_group = value.loc[int_start:,['factor','return_month']]
+                                mid_indus_group['group_NO'] = group_n+1
+                                mid_indus_group.loc[int_start+1:,'weight_stock']= base_weight_stock
+                                mid_indus_group.loc[int_start,'weight_stock']=base_weight_stock*dec_start
+                                grouped_df = grouped_df.append(mid_indus_group)
+                            else:
+                                mid_indus_group = value.loc[int_start:int_end,['factor','return_month']]
+                                mid_indus_group['group_NO'] = group_n+1
+                                mid_indus_group['weight_stock'] = [x*base_weight_stock for x in 
+                                              [dec_start]+[1]*(int_end-int_start-1)+[dec_end]]
+                                grouped_df = grouped_df.append(mid_indus_group)
                 else:
+                    midl = [x*group_amount for x in range(1,6)]
                     for group_n in range(5):
                         int_start =  int(group_amount*group_n)
                         int_end = int(group_amount*(group_n+1))
                         dec_start = 1-math.modf(group_amount*group_n)[0]
                         dec_end = math.modf(group_amount*(group_n+1))[0]
-                        if group_n==0:                        
-                            mid_indus_group = value.loc[:int_end,['factor','return_month']]
+                        if group_n==0:
+                            mid_indus_group = pd.DataFrame(value.loc[0,['factor','return_month']]).T
                             mid_indus_group['group_NO'] = 1
-                            # 正常的
-                            mid_indus_group.loc[:int_end-1,'weight_stock']= base_weight_stock
-                            # 最后一个分隔的
-                            mid_indus_group.loc[int_end,'weight_stock']= base_weight_stock*dec_end
-                            grouped_df = grouped_df.append(mid_indus_group)
+                            mid_indus_group.loc[0,'weight_stock']= base_weight_stock*group_amount
                         elif group_n == 4:
-                            mid_indus_group = value.loc[int_start:,['factor','return_month']]
-                            mid_indus_group['group_NO'] = group_n+1
-                            mid_indus_group.loc[int_start+1:,'weight_stock']= base_weight_stock
-                            mid_indus_group.loc[int_start,'weight_stock']=base_weight_stock*dec_start
-                            grouped_df = grouped_df.append(mid_indus_group)
+                            mid_indus_group = pd.DataFrame(value[['factor','return_month']].iloc[-1,:]).T
+                            mid_indus_group['group_NO'] = 5
+                            mid_indus_group['weight_stock']= base_weight_stock*group_amount
                         else:
-                            mid_indus_group = value.loc[int_start:int_end,['factor','return_month']]
-                            mid_indus_group['group_NO'] = group_n+1
-                            mid_indus_group['weight_stock'] = [x*base_weight_stock for x in 
-                                          [dec_start]+[1]*(int_end-int_start-1)+[dec_end]]
-                            grouped_df = grouped_df.append(mid_indus_group)    
+                            if int(midl[group_n])>int(midl[group_n-1]):
+                                mid_indus_group = value.loc[int_start:int_end,['factor','return_month']]
+                                mid_indus_group['group_NO'] = group_n+1
+                                mid_indus_group['weight_stock'] = [x*base_weight_stock for x in 
+                                                  [dec_start,dec_end]]
+                            elif int(midl[group_n])==int(midl[group_n-1]):
+                                mid_indus_group = pd.DataFrame(value.loc[int_start,['factor','return_month']]).T
+                                mid_indus_group['group_NO'] = group_n+1
+                                mid_indus_group['weight_stock'] = base_weight_stock*group_amount                               
+                        grouped_df = grouped_df.append(mid_indus_group)
             grouped_df.reset_index(drop=True,inplace=True)
             #资金等权,即每个分组的资金都是1亿；因为每个分组的权重一样，所以总资金1亿每个分组2千万和每个分组1亿相同
             for group_num in range(5):
@@ -455,7 +482,7 @@ if __name__=='__main__':
     factors_origin = ['ep','bp','sp','pcf_ocf','dividendyield','evtoebitda'] #估值因子
     factors_origin = ['roe','roa','roic','gpmgr','grossprofitmargin','orgr','cfogr']#盈利能力
     factors_origin = ['invturn','arturn','taturn'] #经营效率
-    factors_origin = ['profittomv','tagr','stmnote_RDexptosales']#盈余质量#投融资决策#无形资产
+    factors_origin = ['profittomv','tagr','stmnote_RDexptosales']#盈余质量#投融资决策#无形资产stmnote_RDexptosales无数据
     factors_origin = ['debttoasset','current'] #杠杆因子
     factors_origin = ['netprofit_fy1_6m','revs60','rstr12'] #市场参与者行为
 
@@ -481,40 +508,13 @@ if __name__=='__main__':
         IC_fac_num_res['factor'] = fac_str
         #方向转换统计
         exch_fac_num_res = Single_factors_test_ins.Style_rotation(res_fac_num)
+        exch_fac_num_res = Clean_Data.Round_df(exch_fac_num_res) #保留四位小数
+        exch_fac_num_res['factor'] = fac_str #添加因子名称
         #结果
         sf_res_num_T = sf_res_num_T.append(T_fac_num_res)
         sf_res_num_IC = sf_res_num_IC.append(IC_fac_num_res)
         sf_res_num_exch = sf_res_num_exch.append(exch_fac_num_res)
-    
-    
-    #因子倒数序数值
-    #回归法
-    sf_res_ord_T = pd.DataFrame()
-    sf_res_ord_IC = pd.DataFrame()
-    sf_res_ord_exch = pd.DataFrame()
-    for fac_str in factors_origin:
-        fac = eval(fac_str)
-        # 数据清洗
-        fac_ord = Clean_Data(fac).Ordinal_values()
-        fac_o_zscore = Clean_Data(fac_ord).Z_score()
-        fac_ordinal = Clean_Data(fac_o_zscore).Fill_na()
-        # 单因子回归
-        res_fac_ord = Single_factors_test_regression(fac_ordinal).single_factor_regress()
-        # T值分析
-        T_fac_ord_res = Single_factors_test_ins.T_analysis(res_fac_ord)
-        T_fac_ord_res = Clean_Data.Round_df(T_fac_ord_res) #保留四位小数
-        T_fac_ord_res['factor'] = fac_str #添加因子名称
-        # IC值分析
-        IC_fac_ord_res = Single_factors_test_ins.IC_analysis(res_fac_ord)
-        IC_fac_ord_res = Clean_Data.Round_df(IC_fac_ord_res)
-        IC_fac_ord_res['factor'] = fac_str
-        #方向转换统计
-        exch_fac_ord_res = Single_factors_test_ins.Style_rotation(res_fac_ord)  
-        #结果
-        sf_res_ord_T = sf_res_ord_T.append(T_fac_ord_res)
-        sf_res_ord_IC = sf_res_ord_IC.append(IC_fac_ord_res)
-        sf_res_ord_exch = sf_res_ord_exch.append(exch_fac_ord_res)
-    
+
     #因子倒数
     #分组法
     sf_res_group = pd.DataFrame()
@@ -530,7 +530,39 @@ if __name__=='__main__':
         #画图
         sf_group_ins.draw(sf_netvalue_df,fac_str)
 
-    sf_res_group = sf_res_group.reset_index()
+    sf_res_group = sf_res_group.reset_index()    
+    
+#    #因子倒数序数值
+#    #回归法
+#    sf_res_ord_T = pd.DataFrame()
+#    sf_res_ord_IC = pd.DataFrame()
+#    sf_res_ord_exch = pd.DataFrame()
+#    for fac_str in factors_origin:
+#        fac = eval(fac_str)
+#        # 数据清洗
+#        fac_ord = Clean_Data(fac).Ordinal_values()
+#        fac_o_zscore = Clean_Data(fac_ord).Z_score()
+#        fac_ordinal = Clean_Data(fac_o_zscore).Fill_na()
+#        # 单因子回归
+#        res_fac_ord = Single_factors_test_regression(fac_ordinal).single_factor_regress()
+#        # T值分析
+#        T_fac_ord_res = Single_factors_test_ins.T_analysis(res_fac_ord)
+#        T_fac_ord_res = Clean_Data.Round_df(T_fac_ord_res) #保留四位小数
+#        T_fac_ord_res['factor'] = fac_str #添加因子名称
+#        # IC值分析
+#        IC_fac_ord_res = Single_factors_test_ins.IC_analysis(res_fac_ord)
+#        IC_fac_ord_res = Clean_Data.Round_df(IC_fac_ord_res)
+#        IC_fac_ord_res['factor'] = fac_str
+#        #方向转换统计
+#        exch_fac_ord_res = Single_factors_test_ins.Style_rotation(res_fac_ord)
+#        exch_fac_ord_res = Clean_Data.Round_df(exch_fac_ord_res) #保留四位小数
+#        exch_fac_ord_res['factor'] = fac_str #添加因子名称
+#        #结果
+#        sf_res_ord_T = sf_res_ord_T.append(T_fac_ord_res)
+#        sf_res_ord_IC = sf_res_ord_IC.append(IC_fac_ord_res)
+#        sf_res_ord_exch = sf_res_ord_exch.append(exch_fac_ord_res)
+    
+
 
 
 
