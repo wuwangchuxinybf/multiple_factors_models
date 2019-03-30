@@ -484,7 +484,7 @@ if __name__=='__main__':
         #结果
         sf_res_num_T = sf_res_num_T.append(T_fac_num_res)
         sf_res_num_IC = sf_res_num_IC.append(IC_fac_num_res)
-        sf_res_num_exch = sf_res_num_IC.append(exch_fac_num_res)
+        sf_res_num_exch = sf_res_num_exch.append(exch_fac_num_res)
     
     
     #因子倒数序数值
@@ -513,7 +513,7 @@ if __name__=='__main__':
         #结果
         sf_res_ord_T = sf_res_ord_T.append(T_fac_ord_res)
         sf_res_ord_IC = sf_res_ord_IC.append(IC_fac_ord_res)
-        sf_res_ord_exch = sf_res_ord_IC.append(exch_fac_ord_res)
+        sf_res_ord_exch = sf_res_ord_exch.append(exch_fac_ord_res)
     
     #因子倒数
     #分组法
