@@ -230,11 +230,35 @@ if __name__=='__main__':
     drawing.draw_mkt_value(drawing.factor_mkt_value(ps),'ps')
 
     #因子与流动市值的相关系数
-    fac_l = ['ep','bp','sp','pcf_ocf','dividendyield','evtoebitda']
+    fac_l = ['ep','bp','roe','roic','arturn','tagr','debttoasset','revs60','rstr12']
     corr_df = pd.DataFrame(index = fac_l,columns = [*range(2009,2019),'mean_corr'])
     for f in fac_l:
         mid_corr = drawing.fac_corr(eval(f),float_mv)
         corr_df.loc[f,:] = [*mid_corr,round(sum(mid_corr)/len(mid_corr),4)]
+    tmp = corr_df.copy()
+    tmp.reset_index(inplace=True)
+    
+    #因子之间的相关系数矩阵
+    fac_l2 = ['ep','bp','roe','roic','arturn','tagr','debttoasset','revs60','rstr12']
+    res_dic = dict()
+#    #每年最后一个交易日
+#    date_df = pd.DataFrame(drawing.trade_date,index=['date']).T
+#    date_ylast = date_df.groupby([x[:4] for x in date_df.date]).last()
+    for tyear in range(2009,2019):
+        corr_df2 = pd.DataFrame(index = fac_l2,columns = fac_l2)
+        for f2 in fac_l2:
+            fac2 = drawing.sub_fac_corr(eval(f2))
+            for f3 in fac_l2:
+                fac3 = drawing.sub_fac_corr(eval(f3))
+                corr_df2.loc[f2,f3] = fac2.loc[:,str(tyear)].corr(fac3.loc[:,str(tyear)])
+        res_dic[tyear] =  Clean_Data.Round_df(corr_df2)
+        print (tyear,'done')
+
+
+
+
+
+
 
 
 
