@@ -67,20 +67,26 @@ class Logit_style:
         '''滞后一期：汇率变化，PE 差，PB 差，股债收益溢价，指数波动率差
            滞后二期：货币供应量，消费价格水平
            滞后一期和三期：大小盘指数涨幅差滞后项'''       
-        fac = np.array([self.market_exchange['chg'][2:-1], 
-                        self.market_M2['chg'][1:-2],
-                        self.market_CPI['chg'][1:-2],
+        fac = np.array([self.market_exchange['chg'][2:-1],  #汇率变化;人民币兑美元汇率月度变化率;滞后1期
+                        self.market_M2['chg'][1:-2],#货币供应量;M2;月同比增速 滞后2期
+                        self.market_CPI['chg'][1:-2], #消费价格水平;CPI;月同比增速;滞后2期
+                        #PE差;小盘指数滚动市盈率-大盘指数滚动市盈率;滞后1期
                         self.market_zz500_pettm['pe_ttm'][2:-1]-self.market_hs300_pettm['pe_ttm'][2:-1],
+                        #PB差;小盘指数市净率-大盘指数市净率;滞后1期
                         self.market_zz500_pblf['chg'][2:-1]-self.market_hs300_pblf['chg'][2:-1],
+                        #股债收益溢价;中证全指月涨幅-中证国债指数月涨幅;滞后1期
                         self.market_zzqz['chg'][2:-1]-self.market_zzgz['chg'][2:-1],
+                        #指数波动率差;小盘股指数历史波动率-大盘股指数历史波动率;滞后1期
                         self.market_zz500_vol['chg'][2:-1]-self.market_hs300_vol['chg'][2:-1],
+                        #大小盘指数涨幅差滞后项;滞后1期的大小盘指数月涨幅差;滞后1期
                         self.market_hs300['chg'][2:-1]-self.market_zz1000['chg'][2:-1],
+                        #大小盘指数涨幅差滞后项;滞后3期的大小盘指数月涨幅差;滞后3期
                         self.market_hs300['chg'][:-3]-self.market_zz1000['chg'][:-3]]).T
         dataMatIn = np.insert(fac, 0, 1, axis=1)
         return dataMatIn
 
 if __name__=='__main__':
-    alpha = 0.1
+    alpha = 0.01
     def Data_preposs(f_arr):
         '''完整的数据预处理流程'''
         f_a1 = Clean_Data(f_arr).Median_deextremum()
@@ -90,14 +96,8 @@ if __name__=='__main__':
     y = Logit_style().gene_y()
     X = Logit_style().gene_factors()
     X = Data_preposs(X)
-    res = Logistic_Regression(X,y,alpha).grad_descent()
-
-
-
-
-
-
-
+    theta_fit = Logistic_Regression(X,y,alpha).grad_descent()
+    h_fit = np.around(Logistic_Regression.sigmoid(np.dot(X,theta_fit)),4)
 
 
 
