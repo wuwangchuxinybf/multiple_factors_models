@@ -10,6 +10,7 @@ import numpy as np
 from single_factors_test import Clean_Data
 
 add_winddata = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/wind/'
+add_ready = 'C:/Users/wuwangchuxin/Desktop/TF_SummerIntern/MF_data/prepared_data/del_cixin/'
 
 class Logistic_Regression:
     def __init__(self,X,y,alpha):
@@ -98,7 +99,8 @@ if __name__=='__main__':
     X = Data_preposs(X)
     theta_fit = Logistic_Regression(X,y,alpha).grad_descent()
     h_fit = np.around(Logistic_Regression.sigmoid(np.dot(X,theta_fit)),4)
-
+    
+    np.save(add_ready+'style_rotation_res',h_fit)
 
 
 
